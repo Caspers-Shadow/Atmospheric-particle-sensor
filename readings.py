@@ -3,55 +3,68 @@
 import colorsys
 import sys
 import time
+import logging
 import requests
 
 import st7735
 
 try:
-    # Transitional fix for breaking change in LTR559
     from ltr559 import LTR559
     ltr559 = LTR559()
 except ImportError:
     import ltr559
-
-import logging
 
 from bme280 import BME280
 from fonts.ttf import RobotoMedium as UserFont
 from PIL import Image, ImageDraw, ImageFont
 from pms5003 import PMS5003
 from pms5003 import ReadTimeoutError as pmsReadTimeoutError
-
 from enviroplus import gas
 
 logging.basicConfig(
     format="%(asctime)s.%(msecs)03d %(levelname)-8s %(message)s",
     level=logging.INFO,
-    datefmt="%Y-%m-%d %H:%M:%S")
+    datefmt="%Y-%m-%d %H:%M:%S"
+)
 
-logging.info("""all-in-one.py - Displays readings from all of Enviro plus' sensors
+logging.info("""
+Atmospheric Sensor Dashboard
+
+Displays:
+- Temperature
+- Pressure
+- Humidity
+- Light
+- Oxidising Gas
+- Reducing Gas
+- NH3 Index
+- PM1.0
+- PM2.5
+- PM10
+
+Uploads data to ThingSpeak every 20 seconds.
 
 Press Ctrl+C to exit!
-
 """)
+
+# ----------------------------------------------------------------------
+# THINGSPEAK CONFIGURATION
+# ----------------------------------------------------------------------
 
 THINGSPEAK_API_KEY = "2FZWRBB132P5J6KX"
 THINGSPEAK_URL = "https://api.thingspeak.com/update"
 
-EXPERIMENT_ID = input(
-    "Enter Experiment ID (e.g., 1, 2, 3): "
-)
-
-UPLOAD_INTERVAL = 20  # ThingSpeak Free allows ~15 seconds minimum
+UPLOAD_INTERVAL = 20
 last_upload = 0
 
-# BME280 temperature/pressure/humidity sensor
-bme280 = BME280()
+# ----------------------------------------------------------------------
+# SENSORS
+# ----------------------------------------------------------------------
 
-# PMS5003 particulate sensor
+bme280 = BME280()
 pms5003 = PMS5003()
 
-# Create ST7735 LCD display class
+# LCD
 st7735 = st7735.ST7735(
     port=0,
     cs=1,
@@ -61,48 +74,75 @@ st7735 = st7735.ST7735(
     spi_speed_hz=10000000
 )
 
-# Initialize display
 st7735.begin()
 
 WIDTH = st7735.width
 HEIGHT = st7735.height
 
-# Set up canvas and font
 img = Image.new("RGB", (WIDTH, HEIGHT), color=(0, 0, 0))
 draw = ImageDraw.Draw(img)
+
 font_size = 20
 font = ImageFont.truetype(UserFont, font_size)
 
-message = ""
-
-# The position of the top bar
 top_pos = 25
 
+# ----------------------------------------------------------------------
+# VARIABLES
+# ----------------------------------------------------------------------
 
-# Displays data and text on the 0.96" LCD
-def display_text(variable, data, unit):
-    # Maintain length of list
-    values[variable] = values[variable][1:] + [data]
-    # Scale the values for the variable between 0 and 1
-    vmin = min(values[variable])
-    vmax = max(values[variable])
-    colours = [(v - vmin + 1) / (vmax - vmin + 1) for v in values[variable]]
-    # Format the variable name and value
-    message = f"{variable[:4]}: {data:.1f} {unit}"
-    logging.info(message)
-    draw.rectangle((0, 0, WIDTH, HEIGHT), (255, 255, 255))
-    for i in range(len(colours)):
-        # Convert the values to colours from red to blue
-        colour = (1.0 - colours[i]) * 0.6
-        r, g, b = [int(x * 255.0) for x in colorsys.hsv_to_rgb(colour, 1.0, 1.0)]
-        # Draw a 1-pixel wide rectangle of colour
-        draw.rectangle((i, top_pos, i + 1, HEIGHT), (r, g, b))
-        # Draw a line graph in black
-        line_y = HEIGHT - (top_pos + (colours[i] * (HEIGHT - top_pos))) + top_pos
-        draw.rectangle((i, line_y, i + 1, line_y + 1), (0, 0, 0))
-    # Write the text at the top in black
-    draw.text((0, 0), message, font=font, fill=(0, 0, 0))
-    st7735.display(img)
+variables = [
+    "temperature",
+    "pressure",
+    "humidity",
+    "light",
+    "oxidised",
+    "reduced",
+    "nh3",
+    "pm1",
+    "pm25",
+    "pm10"
+]
+
+values = {}
+
+for v in variables:
+    values[v] = [1] * WIDTH
+
+# ----------------------------------------------------------------------
+# FUNCTIONS
+# ----------------------------------------------------------------------
+
+
+def get_cpu_temperature():
+    with open("/sys/class/thermal/thermal_zone0/temp", "r") as f:
+        return int(f.read()) / 1000.0
+
+
+def get_nh3_level(nh3_value):
+    """
+    Convert raw NH3 resistance into:
+    - kOhm
+    - Index (0-100)
+    - Human-readable level
+
+    NOTE:
+    This is NOT ppm or molecule count.
+    """
+
+    nh3_kohm = nh3_value / 1000
+
+    nh3_index = min(100, max(0, nh3_kohm))
+
+    if nh3_kohm < 30:
+        level = "LOW"
+    elif nh3_kohm < 60:
+        level = "MEDIUM"
+    else:
+        level = "HIGH"
+
+    return nh3_kohm, nh3_index, level
+
 
 def upload_to_thingspeak(
     temperature,
@@ -111,19 +151,21 @@ def upload_to_thingspeak(
     pm1,
     pm25,
     pm10,
-    nh3
+    nh3_index,
+    light
 ):
+
     payload = {
-    "api_key": THINGSPEAK_API_KEY,
-    "field1": temperature,
-    "field2": humidity,
-    "field3": pressure,
-    "field4": pm1,
-    "field5": pm25,
-    "field6": pm10,
-    "field7": nh3,
-    "field8": EXPERIMENT_ID
-}
+        "api_key": THINGSPEAK_API_KEY,
+        "field1": temperature,
+        "field2": humidity,
+        "field3": pressure,
+        "field4": pm1,
+        "field5": pm25,
+        "field6": pm10,
+        "field7": nh3_index,
+        "field8": light
+    }
 
     try:
         response = requests.get(
@@ -132,96 +174,162 @@ def upload_to_thingspeak(
             timeout=10
         )
 
-        if response.status_code == 200:
-            logging.info(
-                f"ThingSpeak upload successful! Entry #{response.text}"
-            )
-        else:
-            logging.warning(
-                f"ThingSpeak upload failed: {response.status_code}"
-            )
+        logging.info(
+            f"ThingSpeak upload successful! Entry #{response.text}"
+        )
 
     except Exception as e:
         logging.error(f"ThingSpeak Error: {e}")
 
-# Get the temperature of the CPU for compensation
-def get_cpu_temperature():
-    with open("/sys/class/thermal/thermal_zone0/temp", "r") as f:
-        temp = f.read()
-        temp = int(temp) / 1000.0
-    return temp
+
+def display_text(variable, data, unit):
+
+    values[variable] = values[variable][1:] + [data]
+
+    vmin = min(values[variable])
+    vmax = max(values[variable])
+
+    colours = [
+        (v - vmin + 1) / (vmax - vmin + 1)
+        for v in values[variable]
+    ]
+
+    message = f"{variable[:4]}: {data:.1f} {unit}"
+
+    logging.info(message)
+
+    draw.rectangle((0, 0, WIDTH, HEIGHT), (255, 255, 255))
+
+    for i in range(len(colours)):
+
+        colour = (1.0 - colours[i]) * 0.6
+
+        r, g, b = [
+            int(x * 255.0)
+            for x in colorsys.hsv_to_rgb(
+                colour,
+                1.0,
+                1.0
+            )
+        ]
+
+        draw.rectangle(
+            (i, top_pos, i + 1, HEIGHT),
+            (r, g, b)
+        )
+
+        line_y = (
+            HEIGHT
+            - (top_pos + (colours[i] * (HEIGHT - top_pos)))
+            + top_pos
+        )
+
+        draw.rectangle(
+            (i, line_y, i + 1, line_y + 1),
+            (0, 0, 0)
+        )
+
+    draw.text(
+        (0, 0),
+        message,
+        font=font,
+        fill=(0, 0, 0)
+    )
+
+    st7735.display(img)
 
 
-# Tuning factor for compensation. Decrease this number to adjust the
-# temperature down, and increase to adjust up
+# ----------------------------------------------------------------------
+# TEMPERATURE COMPENSATION
+# ----------------------------------------------------------------------
+
 factor = 2.25
-
 cpu_temps = [get_cpu_temperature()] * 5
 
-delay = 0.5  # Debounce the proximity tap
-mode = 0     # The starting mode
+delay = 0.5
+mode = 0
 last_page = 0
-light = 1
 
-# Create a values dict to store the data
-variables = ["temperature",
-             "pressure",
-             "humidity",
-             "light",
-             "oxidised",
-             "reduced",
-             "nh3",
-             "pm1",
-             "pm25",
-             "pm10"]
+# ----------------------------------------------------------------------
+# MAIN LOOP
+# ----------------------------------------------------------------------
 
-values = {}
-
-for v in variables:
-    values[v] = [1] * WIDTH
-
-# The main loop
 try:
+
     while True:
+
         proximity = ltr559.get_proximity()
-        
-        # Upload all sensor data every UPLOAD_INTERVAL seconds
+
+        # --------------------------------------------------------------
+        # THINGSPEAK UPLOAD
+        # --------------------------------------------------------------
+
         if time.time() - last_upload >= UPLOAD_INTERVAL:
 
-            # Temperature
             cpu_temp = get_cpu_temperature()
-            cpu_temps = cpu_temps[1:] + [cpu_temp]
-            avg_cpu_temp = sum(cpu_temps) / len(cpu_temps)
 
-            raw_temp = bme280.get_temperature()
-            temperature = raw_temp - (
-                (avg_cpu_temp - raw_temp) / factor
+            cpu_temps = cpu_temps[1:] + [cpu_temp]
+
+            avg_cpu_temp = (
+                sum(cpu_temps)
+                / len(cpu_temps)
             )
 
-            # Humidity & Pressure
+            raw_temp = bme280.get_temperature()
+
+            temperature = (
+                raw_temp
+                - ((avg_cpu_temp - raw_temp) / factor)
+            )
+
             humidity = bme280.get_humidity()
             pressure = bme280.get_pressure()
 
-            # NH3
             gas_data = gas.read_all()
-            nh3 = gas_data.nh3 / 1000
 
-            # PM values
+            nh3_kohm, nh3_index, nh3_level = (
+                get_nh3_level(gas_data.nh3)
+            )
+
             try:
+
                 pm_data = pms5003.read()
 
-                pm1 = float(pm_data.pm_ug_per_m3(1.0))
-                pm25 = float(pm_data.pm_ug_per_m3(2.5))
-                pm10 = float(pm_data.pm_ug_per_m3(10))
+                pm1 = float(
+                    pm_data.pm_ug_per_m3(1.0)
+                )
+
+                pm25 = float(
+                    pm_data.pm_ug_per_m3(2.5)
+                )
+
+                pm10 = float(
+                    pm_data.pm_ug_per_m3(10)
+                )
 
             except pmsReadTimeoutError:
-                logging.warning(
-                    "PMS5003 timeout during ThingSpeak upload."
-                )
 
                 pm1 = -1
                 pm25 = -1
                 pm10 = -1
+
+            light = (
+                ltr559.get_lux()
+                if proximity < 10
+                else 0
+            )
+
+            print("\n===== SENSOR READINGS =====")
+            print(f"Temperature : {temperature:.2f} C")
+            print(f"Humidity    : {humidity:.2f} %")
+            print(f"Pressure    : {pressure:.2f} hPa")
+            print(f"PM1.0       : {pm1:.2f} ug/m3")
+            print(f"PM2.5       : {pm25:.2f} ug/m3")
+            print(f"PM10        : {pm10:.2f} ug/m3")
+            print(f"NH3         : {nh3_kohm:.2f} kOhm")
+            print(f"NH3 Index   : {nh3_index:.1f}/100")
+            print(f"NH3 Level   : {nh3_level}")
+            print("===========================\n")
 
             upload_to_thingspeak(
                 temperature,
@@ -230,106 +338,167 @@ try:
                 pm1,
                 pm25,
                 pm10,
-                nh3
+                nh3_index,
+                light
             )
 
             last_upload = time.time()
-        #-------------------------------------------------------------------------------------------------
 
-        # If the proximity crosses the threshold, toggle the mode
-        if proximity > 1500 and time.time() - last_page > delay:
+        # --------------------------------------------------------------
+        # CHANGE DISPLAY PAGE
+        # --------------------------------------------------------------
+
+        if proximity > 1500 and (
+            time.time() - last_page > delay
+        ):
             mode += 1
             mode %= len(variables)
             last_page = time.time()
 
-        # One mode for each variable
+        # --------------------------------------------------------------
+        # DISPLAY MODES
+        # --------------------------------------------------------------
+
         if mode == 0:
-            # variable = "temperature"
-            unit = "°C"
+
             cpu_temp = get_cpu_temperature()
-            # Smooth out with some averaging to decrease jitter
             cpu_temps = cpu_temps[1:] + [cpu_temp]
-            avg_cpu_temp = sum(cpu_temps) / float(len(cpu_temps))
+
+            avg_cpu_temp = (
+                sum(cpu_temps)
+                / len(cpu_temps)
+            )
+
             raw_temp = bme280.get_temperature()
-            data = raw_temp - ((avg_cpu_temp - raw_temp) / factor)
-            display_text(variables[mode], data, unit)
 
-        if mode == 1:
-            # variable = "pressure"
-            unit = "hPa"
-            data = bme280.get_pressure()
-            display_text(variables[mode], data, unit)
+            data = (
+                raw_temp
+                - ((avg_cpu_temp - raw_temp) / factor)
+            )
 
-        if mode == 2:
-            # variable = "humidity"
-            unit = "%"
-            data = bme280.get_humidity()
-            display_text(variables[mode], data, unit)
+            display_text(
+                "temperature",
+                data,
+                "C"
+            )
 
-        if mode == 3:
-            # variable = "light"
-            unit = "Lux"
-            if proximity < 10:
-                data = ltr559.get_lux()
-            else:
-                data = 1
-            display_text(variables[mode], data, unit)
+        elif mode == 1:
 
-        if mode == 4:
-            # variable = "oxidised"
-            unit = "kO"
-            data = gas.read_all()
-            data = data.oxidising / 1000
-            display_text(variables[mode], data, unit)
+            display_text(
+                "pressure",
+                bme280.get_pressure(),
+                "hPa"
+            )
 
-        if mode == 5:
-            # variable = "reduced"
-            unit = "kO"
-            data = gas.read_all()
-            data = data.reducing / 1000
-            display_text(variables[mode], data, unit)
+        elif mode == 2:
 
-        if mode == 6:
-            # variable = "nh3"
-            unit = "kO"
-            data = gas.read_all()
-            data = data.nh3 / 1000
-            display_text(variables[mode], data, unit)
+            display_text(
+                "humidity",
+                bme280.get_humidity(),
+                "%"
+            )
 
-        if mode == 7:
-            # variable = "pm1"
-            unit = "ug/m3"
+        elif mode == 3:
+
+            light = (
+                ltr559.get_lux()
+                if proximity < 10
+                else 0
+            )
+
+            display_text(
+                "light",
+                light,
+                "Lux"
+            )
+
+        elif mode == 4:
+
+            display_text(
+                "oxidised",
+                gas.read_all().oxidising / 1000,
+                "kOhm"
+            )
+
+        elif mode == 5:
+
+            display_text(
+                "reduced",
+                gas.read_all().reducing / 1000,
+                "kOhm"
+            )
+
+        elif mode == 6:
+
+            nh3_kohm, nh3_index, nh3_level = (
+                get_nh3_level(
+                    gas.read_all().nh3
+                )
+            )
+
+            logging.info(
+                f"NH3 Level: {nh3_level}"
+            )
+
+            display_text(
+                "nh3",
+                nh3_index,
+                "/100"
+            )
+
+        elif mode == 7:
+
             try:
-                data = pms5003.read()
-            except pmsReadTimeoutError:
-                logging.warning("Failed to read PMS5003")
-            else:
-                data = float(data.pm_ug_per_m3(1.0))
-                display_text(variables[mode], data, unit)
+                data = float(
+                    pms5003.read().pm_ug_per_m3(1.0)
+                )
 
-        if mode == 8:
-            # variable = "pm25"
-            unit = "ug/m3"
+                display_text(
+                    "pm1",
+                    data,
+                    "ug/m3"
+                )
+
+            except pmsReadTimeoutError:
+                logging.warning(
+                    "Failed to read PMS5003"
+                )
+
+        elif mode == 8:
+
             try:
-                data = pms5003.read()
-            except pmsReadTimeoutError:
-                logging.warning("Failed to read PMS5003")
-            else:
-                data = float(data.pm_ug_per_m3(2.5))
-                display_text(variables[mode], data, unit)
+                data = float(
+                    pms5003.read().pm_ug_per_m3(2.5)
+                )
 
-        if mode == 9:
-            # variable = "pm10"
-            unit = "ug/m3"
+                display_text(
+                    "pm25",
+                    data,
+                    "ug/m3"
+                )
+
+            except pmsReadTimeoutError:
+                logging.warning(
+                    "Failed to read PMS5003"
+                )
+
+        elif mode == 9:
+
             try:
-                data = pms5003.read()
-            except pmsReadTimeoutError:
-                logging.warning("Failed to read PMS5003")
-            else:
-                data = float(data.pm_ug_per_m3(10))
-                display_text(variables[mode], data, unit)
+                data = float(
+                    pms5003.read().pm_ug_per_m3(10)
+                )
 
-# Exit cleanly
+                display_text(
+                    "pm10",
+                    data,
+                    "ug/m3"
+                )
+
+            except pmsReadTimeoutError:
+                logging.warning(
+                    "Failed to read PMS5003"
+                )
+
 except KeyboardInterrupt:
     sys.exit(0)
-
