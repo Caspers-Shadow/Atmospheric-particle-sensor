@@ -3,6 +3,7 @@
 import colorsys
 import sys
 import time
+import requests
 
 import st7735
 
@@ -33,6 +34,12 @@ logging.info("""all-in-one.py - Displays readings from all of Enviro plus' senso
 Press Ctrl+C to exit!
 
 """)
+
+THINGSPEAK_API_KEY = "2FZWRBB132P5J6KX"
+THINGSPEAK_URL = "https://api.thingspeak.com/update"
+
+UPLOAD_INTERVAL = 20  # ThingSpeak Free allows ~15 seconds minimum
+last_upload = 0
 
 # BME280 temperature/pressure/humidity sensor
 bme280 = BME280()
@@ -93,6 +100,44 @@ def display_text(variable, data, unit):
     draw.text((0, 0), message, font=font, fill=(0, 0, 0))
     st7735.display(img)
 
+def upload_to_thingspeak(
+    temperature,
+    humidity,
+    pressure,
+    pm1,
+    pm25,
+    pm10,
+    nh3
+):
+    payload = {
+        "api_key": THINGSPEAK_API_KEY,
+        "field1": temperature,
+        "field2": humidity,
+        "field3": pressure,
+        "field4": pm1,
+        "field5": pm25,
+        "field6": pm10,
+        "field7": nh3
+    }
+
+    try:
+        response = requests.get(
+            THINGSPEAK_URL,
+            params=payload,
+            timeout=10
+        )
+
+        if response.status_code == 200:
+            logging.info(
+                f"ThingSpeak upload successful! Entry #{response.text}"
+            )
+        else:
+            logging.warning(
+                f"ThingSpeak upload failed: {response.status_code}"
+            )
+
+    except Exception as e:
+        logging.error(f"ThingSpeak Error: {e}")
 
 # Get the temperature of the CPU for compensation
 def get_cpu_temperature():
@@ -134,6 +179,57 @@ for v in variables:
 try:
     while True:
         proximity = ltr559.get_proximity()
+        
+        # Upload all sensor data every UPLOAD_INTERVAL seconds
+        if time.time() - last_upload >= UPLOAD_INTERVAL:
+
+            # Temperature
+            cpu_temp = get_cpu_temperature()
+            cpu_temps = cpu_temps[1:] + [cpu_temp]
+            avg_cpu_temp = sum(cpu_temps) / len(cpu_temps)
+
+            raw_temp = bme280.get_temperature()
+            temperature = raw_temp - (
+                (avg_cpu_temp - raw_temp) / factor
+            )
+
+            # Humidity & Pressure
+            humidity = bme280.get_humidity()
+            pressure = bme280.get_pressure()
+
+            # NH3
+            gas_data = gas.read_all()
+            nh3 = gas_data.nh3 / 1000
+
+            # PM values
+            try:
+                pm_data = pms5003.read()
+
+                pm1 = float(pm_data.pm_ug_per_m3(1.0))
+                pm25 = float(pm_data.pm_ug_per_m3(2.5))
+                pm10 = float(pm_data.pm_ug_per_m3(10))
+
+            except pmsReadTimeoutError:
+                logging.warning(
+                    "PMS5003 timeout during ThingSpeak upload."
+                )
+
+                pm1 = -1
+                pm25 = -1
+                pm10 = -1
+
+            upload_to_thingspeak(
+                temperature,
+                humidity,
+                pressure,
+                pm1,
+                pm25,
+                pm10,
+                nh3
+            )
+
+            last_upload = time.time()
+        #-------------------------------------------------------------------------------------------------
 
         # If the proximity crosses the threshold, toggle the mode
         if proximity > 1500 and time.time() - last_page > delay:
