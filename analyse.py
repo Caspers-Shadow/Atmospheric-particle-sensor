@@ -1,61 +1,123 @@
 #!/usr/bin/env python3
 
 import pandas as pd
-import os
 
-# Read the ThingSpeak CSV file
+# ----------------------------------------------------
+# LOAD DATA
+# ----------------------------------------------------
+
 try:
     df = pd.read_csv("thingspeak_data.csv")
 except FileNotFoundError:
-    print("ERROR: Could not find 'thingspeak_data.csv'")
+    print("ERROR: thingspeak_data.csv not found.")
     exit(1)
 
-# Display some information about the dataset
-print("\n=== Dataset Information ===")
-print(f"Total entries: {len(df)}")
-print(f"Columns: {list(df.columns)}")
+# Convert timestamps
+df["created_at"] = pd.to_datetime(df["created_at"])
 
-# Check that field8 (Experiment ID) exists
-if "field8" not in df.columns:
+# Convert UTC to South African time
+df["created_at"] = (
+    df["created_at"]
+    .dt.tz_convert("Africa/Johannesburg")
+)
+
+print("\n===== DATASET SUMMARY =====")
+print(f"Total Readings: {len(df)}")
+
+print("\nDate Range:")
+print(f"Start: {df['created_at'].min()}")
+print(f"End:   {df['created_at'].max()}")
+
+print("\nAvailable data:")
+print(f"From: {df['created_at'].min()}")
+print(f"To:   {df['created_at'].max()}")
+
+# ----------------------------------------------------
+# RENAME COLUMNS
+# ----------------------------------------------------
+
+df.columns = [
+    "created_at",
+    "entry_id",
+    "temperature",
+    "humidity",
+    "pressure",
+    "pm1",
+    "pm25",
+    "pm10",
+    "nh3_index",
+    "light"
+]
+
+# ----------------------------------------------------
+# PRINT STATISTICS
+# ----------------------------------------------------
+
+sensors = [
+    "temperature",
+    "humidity",
+    "pressure",
+    "pm1",
+    "pm25",
+    "pm10",
+    "nh3_index",
+    "light"
+]
+
+for sensor in sensors:
+
+    print(f"\n===== {sensor.upper()} =====")
+
     print(
-        "\nERROR: 'field8' was not found.\n"
-        "Make sure Field 8 in ThingSpeak is set to 'Experiment ID'."
-    )
-    exit(1)
-
-# Convert Experiment ID values to integers where possible
-df["field8"] = pd.to_numeric(df["field8"], errors="coerce")
-
-# Get all unique experiment IDs
-experiment_ids = sorted(df["field8"].dropna().unique())
-
-print("\nExperiments found:")
-for exp_id in experiment_ids:
-    count = len(df[df["field8"] == exp_id])
-    print(f"  Experiment {int(exp_id)}: {count} entries")
-
-# Create an output directory if it doesn't exist
-output_dir = "experiments"
-os.makedirs(output_dir, exist_ok=True)
-
-# Export each experiment to its own CSV file
-for exp_id in experiment_ids:
-    experiment_data = df[df["field8"] == exp_id]
-
-    filename = os.path.join(
-        output_dir,
-        f"experiment_{int(exp_id)}.csv"
+        df[sensor].describe()[
+            ["count", "mean", "min", "max"]
+        ]
     )
 
-    experiment_data.to_csv(
+# ----------------------------------------------------
+# SAVE CLEAN DATASET
+# ----------------------------------------------------
+
+df.to_csv(
+    "cleaned_thingspeak_data.csv",
+    index=False
+)
+
+print("\nSaved cleaned_thingspeak_data.csv")
+
+# ----------------------------------------------------
+# OPTIONAL: FILTER AN EXPERIMENT
+# ----------------------------------------------------
+
+answer = input(
+    "\nWould you like to extract an experiment? (y/n): "
+).lower()
+
+if answer == "y":
+
+    print(
+        "\nExample format:\n"
+        "2026-07-16 10:00:00"
+    )
+
+    start = input("Start time: ")
+    end = input("End time: ")
+
+    experiment = df[
+        (df["created_at"] >= start)
+        & (df["created_at"] <= end)
+    ]
+
+    filename = "experiment.csv"
+
+    experiment.to_csv(
         filename,
         index=False
     )
 
     print(
-        f"Exported Experiment {int(exp_id)} "
-        f"({len(experiment_data)} entries) "
-        f"-> {filename}"
+        f"\nExported {len(experiment)} rows "
+        f"to {filename}"
     )
 
-print("\nAll experiments exported successfully!")
+print("\nAnalysis complete!")
