@@ -1036,3 +1036,8 @@ requests.exceptions.HTTPError: 400 Client Error: Bad Request for url: https://ap
 2026-07-21 19:25:24,639 | INFO     | atmo_system | ThingSpeak upload successful. Entry ID=921
 2026-07-21 19:25:44,661 | INFO     | atmo_system | ThingSpeak upload successful. Entry ID=922
 2026-07-21 19:26:04,661 | INFO     | atmo_system | ThingSpeak upload successful. Entry ID=923
+2026-07-21 19:47:06,508 | INFO     | atmo_system | Starting atmospheric monitoring system
+2026-07-21 19:47:06,508 | INFO     | atmo_system | Starting atmospheric monitoring system
+2026-07-21 19:47:06,725 | INFO     | atmo_system | Warming up PMS5003 particulate sensor...
+2026-07-21 19:47:09,684 | INFO     | atmo_system | Entering main loop
+2026-07-21 19:47:10,775 | INFO     | atmo_system | ThingSpeak upload successful. Entry ID=924

@@ -75,12 +75,29 @@ STAT_COLUMNS = [
 ]
 
 
-def load_dataset(path: str) -> pd.DataFrame:
+def load_dataset(path: str):
+
+    import os
+
+    print("\nReading file:")
+    print(os.path.abspath(path))
 
     df = pd.read_csv(path, on_bad_lines="skip")
+    
+    print(df.iloc[95:105])
+    
+    # Remove duplicated headers embedded in the CSV
+    df = df[
+        df["created_at"] != "created_at"
+    ]
+
+    print(f"\nRows found: {len(df)}")
 
     print("\nColumns found:")
     print(df.columns)
+
+    print("\nLast 5 rows:")
+    print(df.tail())
 
     # Remove empty columns
     df = df.loc[:, ~df.columns.str.contains("^Unnamed")]
@@ -178,34 +195,103 @@ def build_gas_trend_report(df: pd.DataFrame) -> pd.DataFrame:
     return report
 
 
-def convert_timestamps(df: pd.DataFrame) -> pd.DataFrame:
-    """Convert UTC timestamps to Africa/Johannesburg local time."""
+def convert_timestamps(df):
+
     df = df.copy()
-    df["timestamp_utc"] = pd.to_datetime(df["timestamp_utc"], utc=True, errors="coerce")
-    df["timestamp_sast"] = df["timestamp_utc"].dt.tz_convert(JOHANNESBURG_TZ)
+
+    # Everything as strings
+    timestamps = (
+        df["timestamp_utc"]
+        .astype(str)
+        .str.strip()
+    )
+
+    # Empty datetime series
+    converted = pd.Series(
+        pd.NaT,
+        index=df.index,
+        dtype="datetime64[ns, UTC]"
+    )
+
+    # Old ThingSpeak format
+    old_mask = timestamps.str.contains(
+        " UTC",
+        na=False
+    )
+
+    converted.loc[old_mask] = pd.to_datetime(
+        timestamps.loc[old_mask],
+        format="%Y-%m-%d %H:%M:%S UTC",
+        utc=True,
+        errors="coerce"
+    )
+
+    # New readings.py format
+    converted.loc[~old_mask] = pd.to_datetime(
+        timestamps.loc[~old_mask],
+        utc=True,
+        errors="coerce"
+    )
+
+    # Replace column
+    df["timestamp_utc"] = converted
+
+    print("\nInvalid timestamps:")
+    print(df["timestamp_utc"].isna().sum())
+
+    if df["timestamp_utc"].isna().any():
+
+        print("\nProblem rows:")
+        print(
+            df.loc[
+                df["timestamp_utc"].isna(),
+                ["timestamp_utc"]
+            ].head(20)
+        )
+
+    # Convert to Johannesburg time
+    df["timestamp_sast"] = (
+        df["timestamp_utc"]
+        .dt.tz_convert(JOHANNESBURG_TZ)
+    )
+
+    print("\nTimestamp Range:")
+    print(
+        "First:",
+        df["timestamp_sast"].min()
+    )
+    print(
+        "Last:",
+        df["timestamp_sast"].max()
+    )
+
     return df
 
 
-def clean_dataset(df: pd.DataFrame) -> pd.DataFrame:
-    """
-    Produce a cleaned dataset:
-      - drop rows with an unparseable timestamp
-      - coerce measurement columns to numeric, invalid parses -> NaN
-      - drop exact duplicate rows
-      - sort chronologically
-    """
-    df = df.dropna(subset=["timestamp_utc"]).copy()
+def clean_dataset(df):
+
+    # Remove bad timestamps
+    df = df.dropna(
+        subset=["timestamp_utc"]
+    ).copy()
 
     for col in STAT_COLUMNS:
-        if col in df.columns:
-            df[col] = pd.to_numeric(df[col], errors="coerce")
-            if col in ("pm1_0", "pm2_5", "pm10"):
-                # -1 is readings.py's sentinel for "PMS5003 unavailable this
-                # cycle" - treat it as missing, not a real zero-adjacent value.
-                df.loc[df[col] == -1, col] = pd.NA
 
-    df = df.drop_duplicates()
-    df = df.sort_values("timestamp_utc").reset_index(drop=True)
+        if col in df.columns:
+
+            df[col] = pd.to_numeric(
+                df[col],
+                errors="coerce"
+            )
+
+    # DO NOT DROP DUPLICATES
+    # Your logger records every 20 seconds.
+    # Two measurements can legitimately be identical.
+
+    df = df.sort_values(
+        by="timestamp_utc"
+    ).reset_index(drop=True)
+
     return df
 
 
@@ -248,50 +334,137 @@ def print_summary(summary_df: pd.DataFrame):
 
 
 def main():
+
+    import os
+
+    print("\nCurrent Directory:")
+    print(os.getcwd())
+
     parser = argparse.ArgumentParser(
         description="Analyse ThingSpeak atmospheric monitoring CSV exports."
     )
+
     parser.add_argument(
-        "--input", "-i", default="thingspeak_data.csv",
-        help="Path to the ThingSpeak export or local readings.py CSV (default: thingspeak_data.csv)"
+        "--input",
+        "-i",
+        default="thingspeak_data.csv"
     )
+
     parser.add_argument(
-        "--start", help="Experiment window start, SAST, e.g. '2026-07-01 08:00:00'"
+        "--start",
+        help="Experiment start (YYYY-MM-DD HH:MM:SS)"
     )
+
     parser.add_argument(
-        "--end", help="Experiment window end, SAST, e.g. '2026-07-01 10:00:00'"
+        "--end",
+        help="Experiment end (YYYY-MM-DD HH:MM:SS)"
     )
+
     args = parser.parse_args()
 
     try:
         df = load_dataset(args.input)
+
     except FileNotFoundError:
-        print(f"ERROR: input file not found: {args.input}")
+
+        print(f"ERROR: {args.input} not found.")
         sys.exit(1)
+
     except ValueError as e:
+
         print(f"ERROR: {e}")
         sys.exit(1)
 
+    # Convert timestamps
     df = convert_timestamps(df)
-    cleaned = clean_dataset(df)
-    cleaned.to_csv(CLEANED_OUTPUT, index=False)
-    print(f"Cleaned dataset written to {CLEANED_OUTPUT} ({len(cleaned)} rows)")
+    
+    print("\nBefore cleaning:")
+    print("Rows:", len(df))
+    print("First timestamp:", df["timestamp_sast"].min())
+    print("Last timestamp:", df["timestamp_sast"].max())
 
+    # Clean dataset
+    cleaned = clean_dataset(df)
+
+    print("\nTimestamp Types:")
+    print(cleaned[["timestamp_utc", "timestamp_sast"]].dtypes)
+
+    print("\nAvailable data:")
+    print(
+        f"From: {cleaned['timestamp_sast'].iloc[0]}"
+    )
+
+    print(
+        f"To:   {cleaned['timestamp_sast'].iloc[-1]}"
+    )
+
+    if not args.start:
+
+        args.start = input(
+            "\nStart date (YYYY-MM-DD HH:MM:SS): "
+        )
+
+    if not args.end:
+
+        args.end = input(
+            "End date (YYYY-MM-DD HH:MM:SS): "
+        )
+
+    # Save cleaned dataset
+    cleaned.to_csv(
+        CLEANED_OUTPUT,
+        index=False
+    )
+
+    print(
+        f"\nCleaned dataset written to "
+        f"{CLEANED_OUTPUT} ({len(cleaned)} rows)"
+    )
+
+    # Statistics
     summary = compute_summary_statistics(cleaned)
     print_summary(summary)
 
+    # Gas report
     gas_report = build_gas_trend_report(cleaned)
-    gas_report.to_csv(GAS_REPORT_OUTPUT, index=False)
-    print(f"Gas trend report written to {GAS_REPORT_OUTPUT} ({len(gas_report)} rows)")
 
-    if args.start and args.end:
-        experiment = extract_experiment(cleaned, args.start, args.end)
-        experiment.to_csv(EXPERIMENT_OUTPUT, index=False)
-        print(f"Experiment extract written to {EXPERIMENT_OUTPUT} "
-              f"({len(experiment)} rows, {args.start} -> {args.end} SAST)")
-    else:
-        print("No --start/--end supplied; skipping experiment.csv extraction.")
+    gas_report.to_csv(
+        GAS_REPORT_OUTPUT,
+        index=False
+    )
+
+    print(
+        f"Gas trend report written to "
+        f"{GAS_REPORT_OUTPUT} ({len(gas_report)} rows)"
+    )
+
+    # Experiment extraction
+    experiment = extract_experiment(
+        cleaned,
+        args.start,
+        args.end
+    )
+
+    experiment.to_csv(
+        EXPERIMENT_OUTPUT,
+        index=False
+    )
+
+    print(
+        f"\nExperiment extract written to "
+        f"{EXPERIMENT_OUTPUT}"
+    )
+
+    print(
+        f"Rows extracted: {len(experiment)}"
+    )
+
+    print(
+        f"Range: {args.start} -> {args.end}"
+    )
 
 
+if __name__ == "__main__":
+    main()
 if __name__ == "__main__":
     main()

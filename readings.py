@@ -612,6 +612,14 @@ def write_csv_row(reading: SensorReading, csv_path=CSV_FILE):
 # ---------------------------------------------------------------------------
 
 def main():
+
+    import os
+
+    print("\nCurrent Directory:")
+    print(os.getcwd())
+
+    logger.info("Starting atmospheric monitoring system")
+    
     logger.info("Starting atmospheric monitoring system")
 
     try:
