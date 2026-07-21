@@ -1010,3 +1010,29 @@ requests.exceptions.HTTPError: 400 Client Error: Bad Request for url: https://ap
 2026-07-21 17:54:35,169 | INFO     | atmo_system | Uploaded to ThingSpeak, entry_id=905
 2026-07-21 17:54:55,170 | INFO     | atmo_system | Uploaded to ThingSpeak, entry_id=906
 2026-07-21 17:55:15,436 | INFO     | atmo_system | Uploaded to ThingSpeak, entry_id=907
+2026-07-21 19:00:17,441 | INFO     | atmo_system | Starting atmospheric monitoring system
+2026-07-21 19:11:04,525 | INFO     | atmo_system | Starting atmospheric monitoring system
+2026-07-21 19:11:04,740 | INFO     | atmo_system | Warming up PMS5003 particulate sensor...
+2026-07-21 19:11:07,700 | INFO     | atmo_system | Entering main loop
+2026-07-21 19:13:09,697 | INFO     | atmo_system | Starting atmospheric monitoring system
+2026-07-21 19:13:09,914 | INFO     | atmo_system | Warming up PMS5003 particulate sensor...
+2026-07-21 19:13:12,872 | INFO     | atmo_system | Entering main loop
+2026-07-21 19:13:13,803 | INFO     | atmo_system | ThingSpeak upload successful. Entry ID=908
+2026-07-21 19:13:33,715 | INFO     | atmo_system | ThingSpeak upload successful. Entry ID=909
+2026-07-21 19:21:40,390 | INFO     | atmo_system | Starting atmospheric monitoring system
+2026-07-21 19:21:40,604 | INFO     | atmo_system | Warming up PMS5003 particulate sensor...
+2026-07-21 19:21:43,565 | INFO     | atmo_system | Entering main loop
+2026-07-21 19:21:44,504 | INFO     | atmo_system | ThingSpeak upload successful. Entry ID=910
+2026-07-21 19:22:04,415 | INFO     | atmo_system | ThingSpeak upload successful. Entry ID=911
+2026-07-21 19:22:24,420 | INFO     | atmo_system | ThingSpeak upload successful. Entry ID=912
+2026-07-21 19:22:44,481 | INFO     | atmo_system | ThingSpeak upload successful. Entry ID=913
+2026-07-21 19:23:04,561 | INFO     | atmo_system | ThingSpeak upload successful. Entry ID=914
+2026-07-21 19:23:24,573 | INFO     | atmo_system | ThingSpeak upload successful. Entry ID=915
+2026-07-21 19:23:44,588 | INFO     | atmo_system | ThingSpeak upload successful. Entry ID=916
+2026-07-21 19:24:04,604 | INFO     | atmo_system | ThingSpeak upload successful. Entry ID=917
+2026-07-21 19:24:24,609 | INFO     | atmo_system | ThingSpeak upload successful. Entry ID=918
+2026-07-21 19:24:44,616 | INFO     | atmo_system | ThingSpeak upload successful. Entry ID=919
+2026-07-21 19:25:04,630 | INFO     | atmo_system | ThingSpeak upload successful. Entry ID=920
+2026-07-21 19:25:24,639 | INFO     | atmo_system | ThingSpeak upload successful. Entry ID=921
+2026-07-21 19:25:44,661 | INFO     | atmo_system | ThingSpeak upload successful. Entry ID=922
+2026-07-21 19:26:04,661 | INFO     | atmo_system | ThingSpeak upload successful. Entry ID=923

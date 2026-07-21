@@ -63,6 +63,7 @@ STAT_COLUMNS = [
     "temperature_c",
     "humidity_pct",
     "pressure_hpa",
+    "light_lux",
     "pm1_0",
     "pm2_5",
     "pm10",
@@ -70,38 +71,23 @@ STAT_COLUMNS = [
     "reducing_index",
     "nh3_index",
     "co_index",
-    "no2_index",
-    "light"
+    "no2_index"
 ]
 
 
 def load_dataset(path: str) -> pd.DataFrame:
-    """
-    Import a ThingSpeak CSV export or local readings.py CSV.
 
-    Supports:
-    - Old schema (10 columns)
-    - New schema (14 columns)
-    - ThingSpeak exports
-    """
+    df = pd.read_csv(path, on_bad_lines="skip")
 
-    try:
-        df = pd.read_csv(
-            path,
-            on_bad_lines="skip"
-        )
+    print("\nColumns found:")
+    print(df.columns)
 
-        print("\nColumns found:")
-        print(df.columns)
-        print("\nNumber of columns:")
-        print(len(df.columns))
+    # Remove empty columns
+    df = df.loc[:, ~df.columns.str.contains("^Unnamed")]
 
-    except Exception as e:
-        raise ValueError(f"Failed to read CSV: {e}")
-
-    # --------------------------------------------------
-    # ThingSpeak / Current CSV format
-    # --------------------------------------------------
+    # -------------------------------
+    # ThingSpeak export
+    # -------------------------------
     if "created_at" in df.columns:
 
         df = df.rename(
@@ -115,60 +101,29 @@ def load_dataset(path: str) -> pd.DataFrame:
                 "pm10": "pm10",
                 "oxidising index": "oxidising_index",
                 "reducing index": "reducing_index",
-                "Unnamed: 10": "nh3_raw",
-                "Unnamed: 11": "nh3_index",
-                "Unnamed: 12": "co_index",
-                "Unnamed: 13": "no2_index"
             }
         )
 
-    # --------------------------------------------------
-    # Old local dataset
-    # --------------------------------------------------
-    elif len(df.columns) == 10:
+        # Derive missing gas aliases
+        df["co_index"] = df["reducing_index"]
+        df["no2_index"] = df["oxidising_index"]
 
-        df.columns = [
-            "timestamp_utc",
-            "entry_id",
-            "temperature_c",
-            "humidity_pct",
-            "pressure_hpa",
-            "pm1_0",
-            "pm2_5",
-            "pm10",
-            "nh3_index",
-            "light"
-        ]
+    # -------------------------------
+    # New readings.py output
+    # -------------------------------
+    elif "timestamp_utc" in df.columns:
 
-    # --------------------------------------------------
-    # New local dataset
-    # --------------------------------------------------
-    elif len(df.columns) == 14:
+        # Add aliases if missing
+        if "co_index" not in df.columns:
+            df["co_index"] = df["reducing_index"]
 
-        df.columns = [
-            "timestamp_utc",
-            "temperature_c",
-            "humidity_pct",
-            "pressure_hpa",
-            "oxidising_index",
-            "pm1_0",
-            "pm2_5",
-            "pm10",
-            "reducing_index",
-            "nh3_raw",
-            "nh3_index",
-            "co_index",
-            "no2_index",
-            "light"
-        ]
+        if "no2_index" not in df.columns:
+            df["no2_index"] = df["oxidising_index"]
 
     else:
 
-        print("\nDetected columns:")
-        print(df.columns)
-
         raise ValueError(
-            f"Unsupported dataset format ({len(df.columns)} columns)."
+            f"Unsupported dataset format ({len(df.columns)} columns)"
         )
 
     print("\nFinal columns:")

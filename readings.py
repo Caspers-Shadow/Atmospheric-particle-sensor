@@ -471,6 +471,7 @@ class ThingSpeakUploader:
         return value
 
     def upload(self, reading: SensorReading):
+
         raw_payload = {
             "field1": reading.temperature_c,
             "field2": reading.humidity_pct,
@@ -478,40 +479,75 @@ class ThingSpeakUploader:
             "field4": reading.pm1_0,
             "field5": reading.pm2_5,
             "field6": reading.pm10,
-            "field7": reading.oxidising_index,
-            "field8": reading.reducing_index,
+
+            # ThingSpeak Free only supports 8 fields
+            "field7": reading.oxidising_index,   # NO2-like index
+            "field8": reading.reducing_index,    # CO-like index
         }
-        # Drop any field whose value is empty/None/NaN so a single failed
-        # sensor (e.g. a PMS5003 timeout) can't cause the whole upload to
-        # be rejected as a malformed request.
+
         payload = {"api_key": self.api_key}
+
         dropped = []
+
         for key, value in raw_payload.items():
+
             cleaned = self._clean_field(value)
+
             if cleaned is None:
                 dropped.append(key)
             else:
                 payload[key] = cleaned
+
         if dropped:
-            logger.warning("Omitting invalid/empty fields from ThingSpeak upload: %s", dropped)
+            logger.warning(
+                "Omitting invalid fields from upload: %s",
+                dropped
+            )
 
         try:
-            response = requests.get(self.url, params=payload, timeout=self.timeout)
+
+            response = requests.get(
+                self.url,
+                params=payload,
+                timeout=self.timeout
+            )
+
             if not response.ok:
+
                 logger.error(
-                    "ThingSpeak upload failed: HTTP %s | body=%r | payload=%r",
-                    response.status_code, response.text, payload,
+                    "ThingSpeak upload failed: "
+                    "HTTP %s | body=%r | payload=%r",
+                    response.status_code,
+                    response.text,
+                    payload
                 )
+
                 return False
+
             entry_id = response.text.strip()
+
             if entry_id == "0":
-                logger.warning("ThingSpeak accepted the request but rejected the update "
-                                "(rate limit or invalid key). Response: %s", entry_id)
+
+                logger.warning(
+                    "ThingSpeak rejected update "
+                    "(rate limit or invalid key)."
+                )
+
                 return False
-            logger.info("Uploaded to ThingSpeak, entry_id=%s", entry_id)
+
+            logger.info(
+                "ThingSpeak upload successful. Entry ID=%s",
+                entry_id
+            )
+
             return True
+
         except requests.exceptions.RequestException:
-            logger.exception("ThingSpeak upload failed; continuing operation")
+
+            logger.exception(
+                "ThingSpeak upload failed; continuing operation."
+            )
+
             return False
 
 
@@ -519,29 +555,43 @@ class ThingSpeakUploader:
 # Reporting layer - console output and local CSV storage
 # ---------------------------------------------------------------------------
 
-def print_console_report(reading: SensorReading, gas_calc: GasIndexCalculator):
+def print_console_report(reading: SensorReading,
+                         gas_calc: GasIndexCalculator):
+
     print("===== SENSOR READINGS =====\n")
+
     print(f"Temperature : {reading.temperature_c} C")
     print(f"Humidity    : {reading.humidity_pct} %")
-    print(f"Pressure    : {reading.pressure_hpa} hPa\n")
+    print(f"Pressure    : {reading.pressure_hpa} hPa")
+    print(f"Light       : {reading.light_lux} Lux\n")
+
     print(f"PM1.0       : {reading.pm1_0}")
     print(f"PM2.5       : {reading.pm2_5}")
     print(f"PM10        : {reading.pm10}\n")
-    print(f"Oxidising   : {round(reading.oxidising_index)}")
-    print(f"Reducing    : {round(reading.reducing_index)}")
-    print(f"NH3         : {round(reading.nh3_index)}\n")
-    print(f"Light       : {reading.light_lux} Lux\n")
-    print("===========================\n")
+
+    print(f"NO2 Index   : {round(reading.oxidising_index)}")
+    print(f"CO Index    : {round(reading.reducing_index)}")
+    print(f"NH3 Index   : {round(reading.nh3_index)}")
+
+    print("\n===========================\n")
 
     gas_report = gas_calc.full_gas_report(
-        reading.oxidising_index, reading.reducing_index, reading.nh3_index
+        reading.oxidising_index,
+        reading.reducing_index,
+        reading.nh3_index
     )
+
     confidence = gas_calc.confidence_label(
-        reading.oxidising_index, reading.reducing_index, reading.nh3_index
+        reading.oxidising_index,
+        reading.reducing_index,
+        reading.nh3_index
     )
+
     print("===== GAS REPORT =====\n")
+
     for gas_name, value in gas_report.items():
         print(f"{gas_name:<15}: {value}")
+
     print(f"\nConfidence:\n{confidence}\n")
     print("=====================\n")
 
