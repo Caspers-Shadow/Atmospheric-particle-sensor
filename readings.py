@@ -64,7 +64,7 @@ except ImportError as import_error:  # pragma: no cover - hardware not present
 # Configuration
 # ---------------------------------------------------------------------------
 
-THINGSPEAK_WRITE_API_KEY = os.environ.get("2FZWRBB132P5J6KX")
+THINGSPEAK_WRITE_API_KEY = os.environ.get("THINGSPEAK_WRITE_API_KEY", "2FZWRBB132P5J6KX")
 THINGSPEAK_URL = "https://api.thingspeak.com/update"
 
 UPLOAD_INTERVAL_SECONDS = 20        # ThingSpeak upload cadence (PRD requirement)
@@ -424,9 +424,27 @@ class ThingSpeakUploader:
         self.url = url
         self.timeout = timeout
 
+    @staticmethod
+    def _clean_field(value):
+        """
+        ThingSpeak's /update endpoint can reject the *entire* request with a
+        400 if any field value is an empty string, None, or NaN. Omit the
+        field entirely in that case rather than sending a bad value - a
+        missing field is handled gracefully by ThingSpeak, but a malformed
+        one is not.
+        """
+        if value is None or value == "":
+            return None
+        try:
+            f = float(value)
+            if f != f:  # NaN check
+                return None
+        except (TypeError, ValueError):
+            return None
+        return value
+
     def upload(self, reading: SensorReading):
-        payload = {
-            "api_key": self.api_key,
+        raw_payload = {
             "field1": reading.temperature_c,
             "field2": reading.humidity_pct,
             "field3": reading.pressure_hpa,
@@ -436,9 +454,28 @@ class ThingSpeakUploader:
             "field7": reading.oxidising_index,
             "field8": reading.reducing_index,
         }
+        # Drop any field whose value is empty/None/NaN so a single failed
+        # sensor (e.g. a PMS5003 timeout) can't cause the whole upload to
+        # be rejected as a malformed request.
+        payload = {"api_key": self.api_key}
+        dropped = []
+        for key, value in raw_payload.items():
+            cleaned = self._clean_field(value)
+            if cleaned is None:
+                dropped.append(key)
+            else:
+                payload[key] = cleaned
+        if dropped:
+            logger.warning("Omitting invalid/empty fields from ThingSpeak upload: %s", dropped)
+
         try:
             response = requests.post(self.url, data=payload, timeout=self.timeout)
-            response.raise_for_status()
+            if not response.ok:
+                logger.error(
+                    "ThingSpeak upload failed: HTTP %s | body=%r | payload=%r",
+                    response.status_code, response.text, payload,
+                )
+                return False
             entry_id = response.text.strip()
             if entry_id == "0":
                 logger.warning("ThingSpeak accepted the request but rejected the update "
