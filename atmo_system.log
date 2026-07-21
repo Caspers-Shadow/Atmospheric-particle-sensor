@@ -148,3 +148,86 @@ Traceback (most recent call last):
   File "/usr/lib/python3/dist-packages/requests/models.py", line 1024, in raise_for_status
     raise HTTPError(http_error_msg, response=self)
 requests.exceptions.HTTPError: 400 Client Error: Bad Request for url: https://api.thingspeak.com/update
+2026-07-21 12:55:50,097 | ERROR    | atmo_system | ThingSpeak upload failed; continuing operation
+Traceback (most recent call last):
+  File "/home/mariska/Desktop/Atmospheric-particle-sensor/readings.py", line 441, in upload
+    response.raise_for_status()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/usr/lib/python3/dist-packages/requests/models.py", line 1024, in raise_for_status
+    raise HTTPError(http_error_msg, response=self)
+requests.exceptions.HTTPError: 400 Client Error: Bad Request for url: https://api.thingspeak.com/update
+2026-07-21 12:57:12,306 | INFO     | atmo_system | Starting atmospheric monitoring system
+2026-07-21 12:57:12,520 | INFO     | atmo_system | Warming up PMS5003 particulate sensor...
+2026-07-21 12:57:15,479 | INFO     | atmo_system | Entering main acquisition loop
+2026-07-21 12:57:16,435 | ERROR    | atmo_system | ThingSpeak upload failed; continuing operation
+Traceback (most recent call last):
+  File "/home/mariska/Desktop/Atmospheric-particle-sensor/readings.py", line 441, in upload
+    response.raise_for_status()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/usr/lib/python3/dist-packages/requests/models.py", line 1024, in raise_for_status
+    raise HTTPError(http_error_msg, response=self)
+requests.exceptions.HTTPError: 400 Client Error: Bad Request for url: https://api.thingspeak.com/update
+2026-07-21 12:57:37,249 | ERROR    | atmo_system | ThingSpeak upload failed; continuing operation
+Traceback (most recent call last):
+  File "/home/mariska/Desktop/Atmospheric-particle-sensor/readings.py", line 441, in upload
+    response.raise_for_status()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/usr/lib/python3/dist-packages/requests/models.py", line 1024, in raise_for_status
+    raise HTTPError(http_error_msg, response=self)
+requests.exceptions.HTTPError: 400 Client Error: Bad Request for url: https://api.thingspeak.com/update
+2026-07-21 12:57:57,251 | ERROR    | atmo_system | ThingSpeak upload failed; continuing operation
+Traceback (most recent call last):
+  File "/home/mariska/Desktop/Atmospheric-particle-sensor/readings.py", line 441, in upload
+    response.raise_for_status()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/usr/lib/python3/dist-packages/requests/models.py", line 1024, in raise_for_status
+    raise HTTPError(http_error_msg, response=self)
+requests.exceptions.HTTPError: 400 Client Error: Bad Request for url: https://api.thingspeak.com/update
+2026-07-21 12:58:17,274 | ERROR    | atmo_system | ThingSpeak upload failed; continuing operation
+Traceback (most recent call last):
+  File "/home/mariska/Desktop/Atmospheric-particle-sensor/readings.py", line 441, in upload
+    response.raise_for_status()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/usr/lib/python3/dist-packages/requests/models.py", line 1024, in raise_for_status
+    raise HTTPError(http_error_msg, response=self)
+requests.exceptions.HTTPError: 400 Client Error: Bad Request for url: https://api.thingspeak.com/update
+2026-07-21 12:58:37,257 | ERROR    | atmo_system | ThingSpeak upload failed; continuing operation
+Traceback (most recent call last):
+  File "/home/mariska/Desktop/Atmospheric-particle-sensor/readings.py", line 441, in upload
+    response.raise_for_status()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/usr/lib/python3/dist-packages/requests/models.py", line 1024, in raise_for_status
+    raise HTTPError(http_error_msg, response=self)
+requests.exceptions.HTTPError: 400 Client Error: Bad Request for url: https://api.thingspeak.com/update
+2026-07-21 12:58:57,255 | ERROR    | atmo_system | ThingSpeak upload failed; continuing operation
+Traceback (most recent call last):
+  File "/home/mariska/Desktop/Atmospheric-particle-sensor/readings.py", line 441, in upload
+    response.raise_for_status()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/usr/lib/python3/dist-packages/requests/models.py", line 1024, in raise_for_status
+    raise HTTPError(http_error_msg, response=self)
+requests.exceptions.HTTPError: 400 Client Error: Bad Request for url: https://api.thingspeak.com/update
+2026-07-21 12:59:17,289 | ERROR    | atmo_system | ThingSpeak upload failed; continuing operation
+Traceback (most recent call last):
+  File "/home/mariska/Desktop/Atmospheric-particle-sensor/readings.py", line 441, in upload
+    response.raise_for_status()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/usr/lib/python3/dist-packages/requests/models.py", line 1024, in raise_for_status
+    raise HTTPError(http_error_msg, response=self)
+requests.exceptions.HTTPError: 400 Client Error: Bad Request for url: https://api.thingspeak.com/update
+2026-07-21 12:59:38,262 | ERROR    | atmo_system | ThingSpeak upload failed; continuing operation
+Traceback (most recent call last):
+  File "/home/mariska/Desktop/Atmospheric-particle-sensor/readings.py", line 441, in upload
+    response.raise_for_status()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/usr/lib/python3/dist-packages/requests/models.py", line 1024, in raise_for_status
+    raise HTTPError(http_error_msg, response=self)
+requests.exceptions.HTTPError: 400 Client Error: Bad Request for url: https://api.thingspeak.com/update
+2026-07-21 12:59:58,261 | ERROR    | atmo_system | ThingSpeak upload failed; continuing operation
+Traceback (most recent call last):
+  File "/home/mariska/Desktop/Atmospheric-particle-sensor/readings.py", line 441, in upload
+    response.raise_for_status()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/usr/lib/python3/dist-packages/requests/models.py", line 1024, in raise_for_status
+    raise HTTPError(http_error_msg, response=self)
+requests.exceptions.HTTPError: 400 Client Error: Bad Request for url: https://api.thingspeak.com/update
