@@ -1,0 +1,14 @@
+# Raspberry Pi 5 hardware libraries (install on the payload Pi, not on a dev machine)
+smbus2
+bme280
+ltr559
+enviroplus
+pms5003
+st7735
+pillow
+
+# Networking / cloud
+requests
+
+# Analysis
+pandas
