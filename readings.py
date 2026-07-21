@@ -64,7 +64,7 @@ except ImportError as import_error:  # pragma: no cover - hardware not present
 # Configuration
 # ---------------------------------------------------------------------------
 
-THINGSPEAK_WRITE_API_KEY = os.environ.get("2FZWRBB132P5J6KX", "YOUR_WRITE_API_KEY")
+THINGSPEAK_WRITE_API_KEY = os.environ.get("2FZWRBB132P5J6KX")
 THINGSPEAK_URL = "https://api.thingspeak.com/update"
 
 UPLOAD_INTERVAL_SECONDS = 20        # ThingSpeak upload cadence (PRD requirement)
