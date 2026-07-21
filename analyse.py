@@ -73,12 +73,17 @@ def load_dataset(path: str) -> pd.DataFrame:
     Import a ThingSpeak CSV export or the local readings.py CSV, and
     normalise both into one consistent schema.
     """
-    df = pd.read_csv(path)
+
+    df = pd.read_csv(
+        path,
+        on_bad_lines='skip'
+    )
 
     if "created_at" in df.columns:
         # Raw ThingSpeak channel export format.
         df = df.rename(columns={"created_at": "timestamp_utc"})
         df = df.rename(columns=THINGSPEAK_FIELD_MAP)
+
     elif "timestamp_utc" not in df.columns:
         raise ValueError(
             "Unrecognised CSV format: expected a 'timestamp_utc' column "
