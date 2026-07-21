@@ -9,3 +9,4 @@ Experiment 2
 Raspberry pi fan is placed on the pi every now and again.
 Raspberry pi fan causes NO2 index to increase and all other gasses to decrease when it is placed above the gass detecting module.
 TEmperature is high, but it can be caused my the pi heating up. Aircon in the labs are set to 24 degrees celsius. Honours lab is not ventilated other than when a person walks in and opens the door.
+After AXE was sprayed the oxsidising index dropped untill the fan was placed on the pi and the reducing index spiked but only for a moment and returned back to normal readings of 0
