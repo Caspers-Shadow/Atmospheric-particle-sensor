@@ -56,6 +56,10 @@ THINGSPEAK_FIELD_MAP = {
     "field8": "reducing_index",
 }
 
+python
+# Replace your existing load_dataset(), STAT_COLUMNS, and
+# build_gas_trend_report() sections with the following.
+
 STAT_COLUMNS = [
     "temperature_c",
     "humidity_pct",
@@ -65,32 +69,143 @@ STAT_COLUMNS = [
     "pm10",
     "oxidising_index",
     "reducing_index",
+    "nh3_index",
+    "co_index",
+    "no2_index",
+    "light"
 ]
 
 
 def load_dataset(path: str) -> pd.DataFrame:
     """
-    Import a ThingSpeak CSV export or the local readings.py CSV, and
-    normalise both into one consistent schema.
+    Import a ThingSpeak CSV export or local readings.py CSV.
+
+    Supports:
+    - Old schema (10 columns)
+    - New schema (14 columns)
+    - ThingSpeak exports
     """
 
-    df = pd.read_csv(
-        path,
-        on_bad_lines='skip'
-    )
+    try:
+        df = pd.read_csv(
+            path,
+            on_bad_lines="skip"
+        )
 
+    except Exception as e:
+        raise ValueError(f"Failed to read CSV: {e}")
+
+    # ThingSpeak export
     if "created_at" in df.columns:
-        # Raw ThingSpeak channel export format.
-        df = df.rename(columns={"created_at": "timestamp_utc"})
-        df = df.rename(columns=THINGSPEAK_FIELD_MAP)
 
-    elif "timestamp_utc" not in df.columns:
+        if "field1" in df.columns:
+
+            df = df.rename(
+                columns={
+                    "created_at": "timestamp_utc",
+                    "field1": "temperature_c",
+                    "field2": "humidity_pct",
+                    "field3": "pressure_hpa",
+                    "field4": "pm1_0",
+                    "field5": "pm2_5",
+                    "field6": "pm10",
+                    "field7": "oxidising_index",
+                    "field8": "reducing_index"
+                }
+            )
+
+    # Old local dataset
+    elif len(df.columns) == 10:
+
+        df.columns = [
+            "timestamp_utc",
+            "entry_id",
+            "temperature_c",
+            "humidity_pct",
+            "pressure_hpa",
+            "pm1_0",
+            "pm2_5",
+            "pm10",
+            "nh3_index",
+            "light"
+        ]
+
+    # New local dataset
+    elif len(df.columns) == 14:
+
+        df.columns = [
+            "timestamp_utc",
+            "temperature_c",
+            "humidity_pct",
+            "pressure_hpa",
+            "oxidising_index",
+            "pm1_0",
+            "pm2_5",
+            "pm10",
+            "reducing_index",
+            "nh3_raw",
+            "nh3_index",
+            "co_index",
+            "no2_index",
+            "light"
+        ]
+
+    else:
+
+        print("\nDetected columns:")
+        print(df.columns)
+
         raise ValueError(
-            "Unrecognised CSV format: expected a 'timestamp_utc' column "
-            "(local export) or 'created_at' column (ThingSpeak export)."
+            f"Unsupported dataset format ({len(df.columns)} columns)."
         )
 
     return df
+
+
+def build_gas_trend_report(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Produce gas trend reports for all available gases.
+    """
+
+    report_cols = ["timestamp_sast"]
+
+    for col in [
+        "oxidising_index",
+        "reducing_index",
+        "nh3_index",
+        "co_index",
+        "no2_index"
+    ]:
+
+        if col in df.columns:
+            report_cols.append(col)
+
+    report = df[report_cols].copy()
+
+    window = min(5, max(1, len(report)))
+
+    for col in report.columns:
+
+        if col == "timestamp_sast":
+            continue
+
+        rolling_mean = report[col].rolling(
+            window=window,
+            min_periods=1
+        ).mean()
+
+        delta = report[col] - rolling_mean
+
+        report[f"{col}_trend"] = delta.apply(
+            lambda d:
+                "rising"
+                if d > 2 else
+                ("falling"
+                 if d < -2 else
+                 "stable")
+        )
+
+    return report
 
 
 def convert_timestamps(df: pd.DataFrame) -> pd.DataFrame:
@@ -151,35 +266,6 @@ def extract_experiment(df: pd.DataFrame, start: str, end: str) -> pd.DataFrame:
     end_ts = pd.Timestamp(end, tz=JOHANNESBURG_TZ)
     mask = (df["timestamp_sast"] >= start_ts) & (df["timestamp_sast"] <= end_ts)
     return df.loc[mask].reset_index(drop=True)
-
-
-def build_gas_trend_report(df: pd.DataFrame) -> pd.DataFrame:
-    """
-    Produce a gas trend report: per-row oxidising / reducing index plus a
-    simple rolling trend direction (rising / falling / stable) computed
-    over a short rolling window, to help visualise ascent-related gas
-    trends. NH3 is not directly uploaded to ThingSpeak per the PRD (it is
-    "performed during analysis"); if the source CSV has an nh3_index
-    column (e.g. from the local readings.py export) it is included too.
-    """
-    report_cols = ["timestamp_sast", "oxidising_index", "reducing_index"]
-    if "nh3_index" in df.columns:
-        report_cols.append("nh3_index")
-
-    report = df[report_cols].copy()
-
-    window = min(5, max(1, len(report)))
-    for col in ["oxidising_index", "reducing_index"] + (
-        ["nh3_index"] if "nh3_index" in report.columns else []
-    ):
-        rolling_mean = report[col].rolling(window=window, min_periods=1).mean()
-        delta = report[col] - rolling_mean
-        trend_col = f"{col}_trend"
-        report[trend_col] = delta.apply(
-            lambda d: "rising" if d > 2 else ("falling" if d < -2 else "stable")
-        )
-
-    return report
 
 
 def print_summary(summary_df: pd.DataFrame):
