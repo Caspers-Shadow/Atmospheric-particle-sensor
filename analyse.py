@@ -56,7 +56,6 @@ THINGSPEAK_FIELD_MAP = {
     "field8": "reducing_index",
 }
 
-python
 # Replace your existing load_dataset(), STAT_COLUMNS, and
 # build_gas_trend_report() sections with the following.
 
@@ -92,29 +91,40 @@ def load_dataset(path: str) -> pd.DataFrame:
             on_bad_lines="skip"
         )
 
+        print("\nColumns found:")
+        print(df.columns)
+        print("\nNumber of columns:")
+        print(len(df.columns))
+
     except Exception as e:
         raise ValueError(f"Failed to read CSV: {e}")
 
-    # ThingSpeak export
+    # --------------------------------------------------
+    # ThingSpeak / Current CSV format
+    # --------------------------------------------------
     if "created_at" in df.columns:
 
-        if "field1" in df.columns:
+        df = df.rename(
+            columns={
+                "created_at": "timestamp_utc",
+                "temperature": "temperature_c",
+                "humidity": "humidity_pct",
+                "pressure": "pressure_hpa",
+                "pm1": "pm1_0",
+                "pm2.5": "pm2_5",
+                "pm10": "pm10",
+                "oxidising index": "oxidising_index",
+                "reducing index": "reducing_index",
+                "Unnamed: 10": "nh3_raw",
+                "Unnamed: 11": "nh3_index",
+                "Unnamed: 12": "co_index",
+                "Unnamed: 13": "no2_index"
+            }
+        )
 
-            df = df.rename(
-                columns={
-                    "created_at": "timestamp_utc",
-                    "field1": "temperature_c",
-                    "field2": "humidity_pct",
-                    "field3": "pressure_hpa",
-                    "field4": "pm1_0",
-                    "field5": "pm2_5",
-                    "field6": "pm10",
-                    "field7": "oxidising_index",
-                    "field8": "reducing_index"
-                }
-            )
-
+    # --------------------------------------------------
     # Old local dataset
+    # --------------------------------------------------
     elif len(df.columns) == 10:
 
         df.columns = [
@@ -130,7 +140,9 @@ def load_dataset(path: str) -> pd.DataFrame:
             "light"
         ]
 
+    # --------------------------------------------------
     # New local dataset
+    # --------------------------------------------------
     elif len(df.columns) == 14:
 
         df.columns = [
@@ -158,6 +170,9 @@ def load_dataset(path: str) -> pd.DataFrame:
         raise ValueError(
             f"Unsupported dataset format ({len(df.columns)} columns)."
         )
+
+    print("\nFinal columns:")
+    print(df.columns)
 
     return df
 
