@@ -1,0 +1,136 @@
+readChannelID = 3429238;
+readAPIKey = 'WORO45TD8DURD3E6';
+
+% Read Temperature and timestamps
+[temperature,time] = thingSpeakRead( ...
+    readChannelID, ...
+    'Fields',1, ...
+    'OutputFormat','matrix', ...
+    'NumPoints',100, ...
+    'ReadKey',readAPIKey);
+
+% Read remaining fields
+humidity = thingSpeakRead( ...
+    readChannelID, ...
+    'Fields',2, ...
+    'OutputFormat','matrix', ...
+    'NumPoints',100, ...
+    'ReadKey',readAPIKey);
+
+pressure = thingSpeakRead( ...
+    readChannelID, ...
+    'Fields',3, ...
+    'OutputFormat','matrix', ...
+    'NumPoints',100, ...
+    'ReadKey',readAPIKey);
+
+pm1 = thingSpeakRead( ...
+    readChannelID, ...
+    'Fields',4, ...
+    'OutputFormat','matrix', ...
+    'NumPoints',100, ...
+    'ReadKey',readAPIKey);
+
+pm25 = thingSpeakRead( ...
+    readChannelID, ...
+    'Fields',5, ...
+    'OutputFormat','matrix', ...
+    'NumPoints',100, ...
+    'ReadKey',readAPIKey);
+
+pm10 = thingSpeakRead( ...
+    readChannelID, ...
+    'Fields',6, ...
+    'OutputFormat','matrix', ...
+    'NumPoints',100, ...
+    'ReadKey',readAPIKey);
+
+oxidising = thingSpeakRead( ...
+    readChannelID, ...
+    'Fields',7, ...
+    'OutputFormat','matrix', ...
+    'NumPoints',100, ...
+    'ReadKey',readAPIKey);
+
+reducing = thingSpeakRead( ...
+    readChannelID, ...
+    'Fields',8, ...
+    'OutputFormat','matrix', ...
+    'NumPoints',100, ...
+    'ReadKey',readAPIKey);
+
+% Temperature
+subplot(4,2,1)
+plot(time,temperature)
+title('Temperature (°C)')
+ylabel('°C')
+xlabel('Time')
+xtickformat('HH:mm')
+grid on
+
+% Humidity
+subplot(4,2,2)
+plot(time,humidity)
+title('Humidity (%)')
+ylabel('%')
+xlabel('Time')
+xtickformat('HH:mm')
+grid on
+
+% Pressure
+subplot(4,2,3)
+plot(time,pressure)
+title('Pressure (hPa)')
+ylabel('hPa')
+xlabel('Time')
+xtickformat('HH:mm')
+grid on
+
+% PM1
+subplot(4,2,4)
+plot(time,pm1)
+title('PM1')
+ylabel('ug/m^3')
+xlabel('Time')
+xtickformat('HH:mm')
+grid on
+
+% PM2.5
+subplot(4,2,5)
+plot(time,pm25)
+title('PM2.5')
+ylabel('ug/m^3')
+xlabel('Time')
+xtickformat('HH:mm')
+grid on
+
+% PM10
+subplot(4,2,6)
+plot(time,pm10)
+title('PM10')
+ylabel('ug/m^3')
+xlabel('Time')
+xtickformat('HH:mm')
+grid on
+
+% Oxidising
+subplot(4,2,7)
+plot(time,oxidising)
+title('Oxidising Index')
+ylabel('0-100')
+xlabel('Time')
+xtickformat('HH:mm')
+ylim([0 100])
+grid on
+
+% Reducing
+subplot(4,2,8)
+plot(time,reducing)
+title('Reducing Index')
+ylabel('0-100')
+xlabel('Time')
+xtickformat('HH:mm')
+ylim([0 100])
+grid on
+
+sgtitle('Atmospheric Monitoring Dashboard')
