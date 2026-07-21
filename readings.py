@@ -67,9 +67,10 @@ except ImportError as import_error:  # pragma: no cover - hardware not present
 THINGSPEAK_WRITE_API_KEY = os.environ.get("THINGSPEAK_WRITE_API_KEY", "2FZWRBB132P5J6KX")
 THINGSPEAK_URL = "https://api.thingspeak.com/update"
 
-UPLOAD_INTERVAL_SECONDS = 20        # ThingSpeak upload cadence (PRD requirement)
-SENSOR_REFRESH_SECONDS = 1          # Sensor refresh must be < 1 second (PRD requirement)
-LCD_PAGE_DWELL_SECONDS = 0.1        # LCD loop tick, navigation driven by proximity
+UPLOAD_INTERVAL_SECONDS = 20        # ThingSpeak upload + full sensor acquisition cadence.
+                                     # PM5003/gas reads happen ONLY at this cadence - do not
+                                     # poll them faster, it desyncs the PMS5003 UART frames.
+LCD_PAGE_DWELL_SECONDS = 0.1        # Fast-tick loop: LCD nav + cheap I2C sensor refresh
 
 CSV_FILE = "thingspeak_data.csv"
 LOG_FILE = "atmo_system.log"
@@ -257,7 +258,8 @@ class SensorManager:
         time.sleep(2)
 
     def read_environment(self):
-        """Read temperature, humidity, pressure, light."""
+        """Read temperature, humidity, pressure, light. Cheap I2C reads -
+        safe to call on every fast tick."""
         temperature_c = self.bme280.get_temperature()
         pressure_hpa = self.bme280.get_pressure()
         humidity_pct = self.bme280.get_humidity()
@@ -268,16 +270,25 @@ class SensorManager:
         """
         Read PM1.0 / PM2.5 / PM10 from the PMS5003, tolerating sensor
         timeouts as required by the PRD ("Recover from PMS5003 timeouts").
-        Returns (pm1_0, pm2_5, pm10) or (None, None, None) on repeated
-        failure, so the caller can still upload the other measurements.
+
+        IMPORTANT: only call this at the upload/logging cadence (e.g. once
+        every 20s), not on every fast loop tick. The PMS5003 has its own
+        ~2.3s internal update interval; polling it much faster than that
+        desyncs the UART frame buffer and causes frequent ReadTimeoutError
+        failures - this was the root cause of missing PM/gas data and
+        ThingSpeak 400 errors in earlier testing.
+
+        Returns (pm1_0, pm2_5, pm10) as floats, using -1 as a sentinel for
+        "sensor unavailable this cycle" (matches the proven reference
+        implementation) so downstream consumers always get a valid number.
         """
         for attempt in range(1, retries + 1):
             try:
                 data = self.pms5003.read()
                 return (
-                    data.pm_ug_per_m3(1.0),
-                    data.pm_ug_per_m3(2.5),
-                    data.pm_ug_per_m3(10),
+                    float(data.pm_ug_per_m3(1.0)),
+                    float(data.pm_ug_per_m3(2.5)),
+                    float(data.pm_ug_per_m3(10)),
                 )
             except PMS5003ReadTimeoutError:
                 logger.warning(
@@ -287,11 +298,13 @@ class SensorManager:
             except Exception:
                 logger.exception("Unexpected PMS5003 read failure")
                 time.sleep(0.5)
-        logger.error("PMS5003 read failed after %d attempts; using None", retries)
-        return None, None, None
+        logger.error("PMS5003 read failed after %d attempts; using -1 sentinel", retries)
+        return -1.0, -1.0, -1.0
 
     def read_gas_raw(self):
-        """Read raw MICS6814 element resistances (ohms) via enviroplus.gas."""
+        """Read raw MICS6814 element resistances (ohms) via enviroplus.gas.
+        Only call this at the upload/logging cadence, same reasoning as
+        read_particulates - avoid hammering the sensor faster than needed."""
         try:
             readings = gas.read_all()
             return readings.oxidising, readings.reducing, readings.nh3
@@ -299,8 +312,22 @@ class SensorManager:
             logger.exception("Gas sensor read failure; returning zeros")
             return 0.0, 0.0, 0.0
 
+    def take_fast_reading(self):
+        """
+        Cheap I2C-only reading (temperature/humidity/pressure/light) safe
+        to call many times per second for LCD navigation ticks. Does NOT
+        touch the PMS5003 or gas sensor.
+        """
+        temperature_c, humidity_pct, pressure_hpa, light_lux = self.read_environment()
+        return temperature_c, humidity_pct, pressure_hpa, light_lux
+
     def take_reading(self):
-        """Assemble a full SensorReading for one acquisition cycle."""
+        """
+        Assemble a full SensorReading for one acquisition/upload cycle.
+        Call this at most once per UPLOAD_INTERVAL_SECONDS - it includes
+        the PMS5003 and gas sensor reads, which must not be polled faster
+        than roughly once every few seconds (see read_particulates).
+        """
         temperature_c, humidity_pct, pressure_hpa, light_lux = self.read_environment()
         pm1_0, pm2_5, pm10 = self.read_particulates()
         ox_raw, red_raw, nh3_raw = self.read_gas_raw()
@@ -315,9 +342,9 @@ class SensorManager:
             humidity_pct=round(humidity_pct, 2),
             pressure_hpa=round(pressure_hpa, 2),
             light_lux=round(light_lux, 2),
-            pm1_0=pm1_0 if pm1_0 is not None else "",
-            pm2_5=pm2_5 if pm2_5 is not None else "",
-            pm10=pm10 if pm10 is not None else "",
+            pm1_0=pm1_0,
+            pm2_5=pm2_5,
+            pm10=pm10,
             oxidising_raw=round(ox_raw, 2),
             reducing_raw=round(red_raw, 2),
             nh3_raw=round(nh3_raw, 2),
@@ -469,7 +496,7 @@ class ThingSpeakUploader:
             logger.warning("Omitting invalid/empty fields from ThingSpeak upload: %s", dropped)
 
         try:
-            response = requests.post(self.url, data=payload, timeout=self.timeout)
+            response = requests.get(self.url, params=payload, timeout=self.timeout)
             if not response.ok:
                 logger.error(
                     "ThingSpeak upload failed: HTTP %s | body=%r | payload=%r",
@@ -552,38 +579,53 @@ def main():
 
     uploader = ThingSpeakUploader()
     last_upload_time = 0.0
+    latest_reading = None  # most recent FULL reading (incl. PM/gas), for LCD/CSV
 
-    logger.info("Entering main acquisition loop")
+    logger.info("Entering main loop")
     while True:
         cycle_start = time.time()
-        try:
-            reading = sensors.take_reading()
-        except Exception:
-            logger.exception("Unhandled error during sensor acquisition; "
-                              "skipping this cycle and continuing")
-            time.sleep(SENSOR_REFRESH_SECONDS)
-            continue
 
-        print_console_report(reading, sensors.gas_calc)
-
-        try:
-            write_csv_row(reading)
-        except Exception:
-            logger.exception("Failed to write local CSV row")
-
-        if lcd is not None:
+        # ---- Full acquisition (PM5003 + gas) only at the upload cadence.
+        # These sensors must not be polled faster than roughly once every
+        # few seconds - see SensorManager.read_particulates docstring.
+        if cycle_start - last_upload_time >= UPLOAD_INTERVAL_SECONDS:
             try:
-                lcd.render(reading)
+                latest_reading = sensors.take_reading()
+            except Exception:
+                logger.exception("Unhandled error during sensor acquisition; "
+                                  "skipping this cycle and continuing")
+                time.sleep(LCD_PAGE_DWELL_SECONDS)
+                continue
+
+            print_console_report(latest_reading, sensors.gas_calc)
+
+            try:
+                write_csv_row(latest_reading)
+            except Exception:
+                logger.exception("Failed to write local CSV row")
+
+            uploader.upload(latest_reading)
+            last_upload_time = cycle_start
+
+        # ---- Fast tick: cheap I2C sensors + LCD navigation, every cycle.
+        # Refreshes temperature/humidity/pressure/light for display purposes
+        # without touching the PMS5003 or gas sensor.
+        if lcd is not None and latest_reading is not None:
+            try:
+                temperature_c, humidity_pct, pressure_hpa, light_lux = sensors.take_fast_reading()
+                # Update the cached reading's cheap fields so the LCD shows
+                # fresh env data between full acquisition cycles, while PM/
+                # gas fields stay at their last-known values.
+                latest_reading.temperature_c = round(temperature_c, 2)
+                latest_reading.humidity_pct = round(humidity_pct, 2)
+                latest_reading.pressure_hpa = round(pressure_hpa, 2)
+                latest_reading.light_lux = round(light_lux, 2)
+                lcd.render(latest_reading)
             except Exception:
                 logger.exception("LCD render failure; continuing without display")
 
-        now = time.time()
-        if now - last_upload_time >= UPLOAD_INTERVAL_SECONDS:
-            uploader.upload(reading)
-            last_upload_time = now
-
         elapsed = time.time() - cycle_start
-        sleep_time = max(0.0, SENSOR_REFRESH_SECONDS - elapsed)
+        sleep_time = max(0.0, LCD_PAGE_DWELL_SECONDS - elapsed)
         time.sleep(sleep_time)
 
 
