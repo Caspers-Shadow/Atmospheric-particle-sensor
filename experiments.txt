@@ -6,3 +6,4 @@ Experiment 2
 21 July 2026
 13:36 -
 14:03  Axe sprayed
+Raspberry pi fan is placed on the pi every now and again
