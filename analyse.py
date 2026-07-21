@@ -109,6 +109,10 @@ def clean_dataset(df: pd.DataFrame) -> pd.DataFrame:
     for col in STAT_COLUMNS:
         if col in df.columns:
             df[col] = pd.to_numeric(df[col], errors="coerce")
+            if col in ("pm1_0", "pm2_5", "pm10"):
+                # -1 is readings.py's sentinel for "PMS5003 unavailable this
+                # cycle" - treat it as missing, not a real zero-adjacent value.
+                df.loc[df[col] == -1, col] = pd.NA
 
     df = df.drop_duplicates()
     df = df.sort_values("timestamp_utc").reset_index(drop=True)
