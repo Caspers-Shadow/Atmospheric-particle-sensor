@@ -1,0 +1,278 @@
+%% visualise_atmo_data.m
+%
+% Atmospheric Monitoring System - MATLAB Visualisation
+% -----------------------------------------------------
+% Reads the CSV output from readings.py / analyse.py (either the raw
+% thingspeak_data.csv or the cleaned_thingspeak_data.csv) and produces a
+% multi-panel dashboard of the balloon flight:
+%
+%   1. Temperature & Humidity vs time
+%   2. Pressure vs time on its own (proxy for ascent/altitude - pressure
+%      drops as the balloon climbs)
+%   3. Particulate matter (PM1.0 / PM2.5 / PM10) vs time
+%   4. Gas indices (Oxidising / Reducing / NH3) vs time
+%
+% USAGE:
+%   1. Edit CSV_FILE below to point at your data file.
+%   2. Run this script (F5, or type "visualise_atmo_data" in the console).
+%
+% NOTES:
+%   - PM values of -1 are readings.py's sentinel for "PMS5003 unavailable
+%     this cycle" and are treated here as missing data (NaN), matching
+%     the convention used in analyse.py.
+%   - Timestamps are stored in UTC by readings.py and are converted here
+%     to Africa/Johannesburg local time, matching analyse.py.
+
+clear; clc; close all;
+
+%% ---------------------------------------------------------------------
+% Configuration
+% ------------------------------------------------------------------------
+CSV_FILE = "experiment_clean.csv";   % or "cleaned_thingspeak_data.csv"
+LOCAL_TIMEZONE = "Africa/Johannesburg";
+
+%% ---------------------------------------------------------------------
+% Load data
+% ------------------------------------------------------------------------
+if ~isfile(CSV_FILE)
+    error("Could not find %s in the current folder. " + ...
+          "Check the path or copy the CSV next to this script.", CSV_FILE);
+end
+
+% Read table (let detectImportOptions handle types generically)
+opts = detectImportOptions(CSV_FILE);
+data = readtable(CSV_FILE, opts);
+
+if height(data) == 0
+    error("%s contains no rows.", CSV_FILE);
+end
+% Read table (let detectImportOptions handle types generically)
+opts = detectImportOptions(CSV_FILE);
+data = readtable(CSV_FILE, opts);
+
+if height(data) == 0
+    error("%s contains no rows.", CSV_FILE);
+end
+
+% Robustly find a timestamp column (prefer timestamp_utc, then timestamp).
+% Handle malformed headers where detectImportOptions created Var1..VarN.
+vars = data.Properties.VariableNames;
+
+if ismember("timestamp_utc", vars)
+    tsVar = "timestamp_utc";
+elseif ismember("timestamp", vars)
+    tsVar = "timestamp";
+else
+    % Inspect first few rows/headers to find a column that looks like an ISO timestamp.
+    Ncheck = min(height(data), 10);
+    tsCandidates = strings;
+    for i = 1:numel(vars)
+        col = data.(vars{i});
+        % Convert candidate column to string for pattern checking
+        try
+            s = string(col(1:Ncheck));
+        catch
+            continue
+        end
+        % Check for ISO 8601-like patterns (e.g. 2023-05-01T12:34:56 or with timezone)
+        isoMask = contains(s, "T") & contains(s, "-") & (contains(s, ":"));
+        if any(isoMask)
+            tsCandidates(end+1) = vars{i}; %#ok<AGROW>
+        end
+    end
+    if ~isempty(tsCandidates)
+        % Prefer the candidate with the most ISO-like matches
+        scores = zeros(size(tsCandidates));
+        for k = 1:numel(tsCandidates)
+            col = string(data.(tsCandidates(k)));
+            tsCandidates = strings(0,1);
+            scores(k) = sum(contains(col, "T") & contains(col, "-") & contains(col, ":"));
+        end
+        [~, idxMax] = max(scores);
+        tsVar = tsCandidates(idxMax);
+    else
+        % As a final fallback, if Var1 exists and its contents look numeric POSIX times, use it
+        if ismember("Var1", vars) && isnumeric(data.Var1)
+            tsVar = "Var1";
+        else
+            available = strjoin(vars, ", ");
+            error("Table must contain a timestamp column (e.g. 'timestamp_utc' or 'timestamp'). Available variables: %s", available);
+        end
+    end
+end
+ts = data.(tsVar);
+
+% Parse timestamps robustly
+if isdatetime(ts)
+    t_utc = ts;
+    if isempty(t_utc.TimeZone) || strcmp(t_utc.TimeZone, "")
+        t_utc.TimeZone = "UTC";
+    end
+elseif isnumeric(ts)
+    t_utc = datetime(ts, 'ConvertFrom', 'posixtime'); % assume POSIX if numeric
+    t_utc.TimeZone = "UTC";
+else
+    ts = string(ts);
+    t_utc = datetime(ts, "InputFormat", "yyyy-MM-dd'T'HH:mm:ss.SSSXXX", "TimeZone", "UTC", "Format", "default");
+    badRows = isnat(t_utc);
+    if any(badRows)
+        t_utc(badRows) = datetime(ts(badRows), "InputFormat", "yyyy-MM-dd'T'HH:mm:ssXXX", "TimeZone", "UTC", "Format", "default");
+    end
+end
+
+% Convert to local timezone
+t_local = t_utc;
+t_local.TimeZone = LOCAL_TIMEZONE;
+
+head(data)
+% Find a timestamp column (prefer timestamp_utc)
+if ismember("timestamp_utc", data.Properties.VariableNames)
+    tsVar = "timestamp_utc";
+elseif ismember("timestamp", data.Properties.VariableNames)
+    tsVar = "timestamp";
+else
+    available = strjoin(data.Properties.VariableNames, ", ");
+    error("Table must contain 'timestamp_utc' or 'timestamp' variable. Available variables: %s", available);
+
+end
+ts = data.(tsVar);
+
+% Ensure timestamp data are string-like before datetime parsing
+if isnumeric(ts) || isdatetime(ts)
+    % If already datetime numeric/datetime, convert to datetime and set zone if missing
+    t_utc = datetime(ts);
+    if isempty(t_utc.TimeZone) || strcmp(t_utc.TimeZone, '')
+        t_utc.TimeZone = "UTC";
+    end
+else
+    ts = string(ts); %#ok<NASGU>
+    % Primary parse with fractional seconds
+    t_utc = datetime(ts, "InputFormat", "yyyy-MM-dd'T'HH:mm:ss.SSSXXX", "TimeZone", "UTC");
+    % Fallback parse for rows without fractional seconds
+    badRows = isnat(t_utc);
+    if any(badRows)
+        t_utc(badRows) = datetime(ts(badRows), "InputFormat", "yyyy-MM-dd'T'HH:mm:ssXXX", "TimeZone", "UTC");
+    end
+end
+
+% Convert to local timezone
+t_local = t_utc;
+t_local.TimeZone = LOCAL_TIMEZONE;
+
+% Some rows may not include fractional seconds - retry those with a
+% fallback format instead of dropping them.
+badRows = isnat(t_utc);
+if any(badRows)
+    t_utc(badRows) = datetime(data.timestamp_utc(badRows), ...
+        "InputFormat", "yyyy-MM-dd'T'HH:mm:ssXXX", ...
+        "TimeZone", "UTC");
+end
+
+t_local = t_utc;
+t_local.TimeZone = LOCAL_TIMEZONE;
+
+%% ---------------------------------------------------------------------
+% Clean sentinel / missing values
+% ------------------------------------------------------------------------
+pmCols = ["pm1_0", "pm2_5", "pm10"];
+for i = 1:numel(pmCols)
+    col = pmCols(i);
+    if ismember(col, data.Properties.VariableNames)
+        v = data.(col);
+        v(v == -1) = NaN;   % PMS5003 unavailable sentinel
+        data.(col) = v;
+    end
+end
+
+%% ---------------------------------------------------------------------
+% Dashboard: 4 stacked panels sharing the same time axis
+% ------------------------------------------------------------------------
+fig = figure("Name", "Atmospheric Monitoring Dashboard", ...
+             "Color", "w", "Position", [100 100 1100 900]);
+tl = tiledlayout(fig, 4, 1, "TileSpacing", "compact", "Padding", "compact");
+title(tl, "Stratospheric Balloon - Atmospheric Monitoring System", ...
+    "FontSize", 14, "FontWeight", "bold");
+
+% --- Panel 1: Temperature / Humidity -----------------------------------
+ax1 = nexttile(tl);
+yyaxis(ax1, "left");
+plot(ax1, t_local, data.temperature_c, "-", "LineWidth", 1.3, "Color", [0.85 0.33 0.10]);
+ylabel(ax1, "Temperature (\circC)");
+yyaxis(ax1, "right");
+plot(ax1, t_local, data.humidity_pct, "-", "LineWidth", 1.3, "Color", [0.00 0.45 0.74]);
+ylabel(ax1, "Humidity (%)");
+title(ax1, "Temperature & Humidity");
+grid(ax1, "on");
+legend(ax1, ["Temperature", "Humidity"], "Location", "best");
+
+% --- Panel 2: Pressure (proxy for ascent) -------------------------------
+ax2 = nexttile(tl);
+plot(ax2, t_local, data.pressure_hpa, "-", "LineWidth", 1.5, "Color", [0.47 0.25 0.80]);
+ylabel(ax2, "Pressure (hPa)");
+title(ax2, "Pressure (falls with altitude during ascent)");
+grid(ax2, "on");
+
+% --- Panel 3: Particulate matter ----------------------------------------
+ax3 = nexttile(tl);
+hold(ax3, "on");
+plot(ax3, t_local, data.pm1_0, "-o", "MarkerSize", 3, "LineWidth", 1.1, "DisplayName", "PM1.0");
+plot(ax3, t_local, data.pm2_5, "-o", "MarkerSize", 3, "LineWidth", 1.1, "DisplayName", "PM2.5");
+plot(ax3, t_local, data.pm10,  "-o", "MarkerSize", 3, "LineWidth", 1.1, "DisplayName", "PM10");
+hold(ax3, "off");
+ylabel(ax3, "\mug/m^3");
+title(ax3, "Particulate Matter");
+grid(ax3, "on");
+legend(ax3, "Location", "best");
+
+% --- Panel 4: Gas indices -------------------------------------------------
+ax4 = nexttile(tl);
+hold(ax4, "on");
+plot(ax4, t_local, data.oxidising_index, "-", "LineWidth", 1.2, "DisplayName", "Oxidising Index");
+plot(ax4, t_local, data.reducing_index,  "-", "LineWidth", 1.2, "DisplayName", "Reducing Index");
+if ismember("nh3_index", data.Properties.VariableNames)
+    plot(ax4, t_local, data.nh3_index, "-", "LineWidth", 1.2, "DisplayName", "NH3 Index");
+end
+hold(ax4, "off");
+ylim(ax4, [0 100]);
+ylabel(ax4, "Relative Index (0-100)");
+xlabel(ax4, sprintf("Time (%s)", LOCAL_TIMEZONE));
+title(ax4, "Gas Trend Indices (relative, not ppm - see PRD limitations)");
+grid(ax4, "on");
+legend(ax4, "Location", "best");
+
+linkaxes([ax1 ax2 ax3 ax4], "x");
+
+%% ---------------------------------------------------------------------
+% Summary statistics printed to the console (mirrors analyse.py)
+% ------------------------------------------------------------------------
+statCols = ["temperature_c", "humidity_pct", "pressure_hpa", ...
+            "pm1_0", "pm2_5", "pm10", "oxidising_index", "reducing_index"];
+
+fprintf("\n===== SUMMARY STATISTICS =====\n\n");
+fprintf("%-16s %8s %10s %10s %10s\n", "measurement", "count", "mean", "min", "max");
+for i = 1:numel(statCols)
+    col = statCols(i);
+    if ~ismember(col, data.Properties.VariableNames)
+        continue
+    end
+    v = data.(col);
+    v = v(~isnan(v));
+    fprintf("%-16s %8d %10.3f %10.3f %10.3f\n", col, numel(v), mean(v), min(v), max(v));
+end
+fprintf("\n===============================\n");
+
+%% ---------------------------------------------------------------------
+% Save each panel as its own PNG for direct use in the LaTeX chapter
+% (matches the \includegraphics filenames used in chapter3_empirical.tex)
+% ------------------------------------------------------------------------
+% exportgraphics(ax1, "figures/environmental_timeseries.png", "Resolution", 200);
+% exportgraphics(ax2, "figures/pressure_timeseries.png", "Resolution", 200);
+% exportgraphics(ax3, "figures/pm_timeseries.png", "Resolution", 200);
+% exportgraphics(ax4, "figures/gas_timeseries.png", "Resolution", 200);
+% exportgraphics(fig, "figures/atmo_dashboard.png", "Resolution", 200);
+% Export each panel as its own PNG for direct use in the LaTeX chapter
+exportgraphics(ax1, "figures/environmental_timeseries.png", "Resolution", 200);
+exportgraphics(ax2, "figures/pressure_timeseries.png", "Resolution", 200);
+exportgraphics(ax3, "figures/pm_timeseries.png", "Resolution", 200);
+exportgraphics(ax4, "figures/gas_timeseries.png", "Resolution", 200);
+exportgraphics(fig, "figures/atmo_dashboard.png", "Resolution", 200);
