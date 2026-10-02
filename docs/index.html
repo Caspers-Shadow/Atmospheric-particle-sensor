@@ -1,0 +1,256 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="description" content="Interactive showcase for the Atmospheric Particle Sensor honours project." />
+  <title>Atmospheric Particle Sensor | Honours Project</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <canvas id="sky" aria-hidden="true"></canvas>
+
+  <header class="site-header">
+    <a class="brand" href="#top">APS / 2026</a>
+    <nav aria-label="Primary">
+      <a href="#mission">Mission</a>
+      <a href="#payload">Payload</a>
+      <a href="#data">Data</a>
+      <a href="#findings">Findings</a>
+    </nav>
+  </header>
+
+  <main id="top">
+    <section class="hero section">
+      <div class="hero-copy reveal">
+        <p class="eyebrow">BSc Honours · Information Technology & Computer Science</p>
+        <h1>Atmospheric<br><span>Particle Sensor</span></h1>
+        <p class="lede">A low-cost Raspberry Pi sensing platform designed to turn atmospheric science into something learners can see, touch and explore.</p>
+        <div class="hero-actions">
+          <a class="button primary" href="#mission">Explore the experiment</a>
+          <a class="button ghost" href="https://github.com/Caspers-Shadow/Atmospheric-particle-sensor" target="_blank" rel="noreferrer">View source code</a>
+        </div>
+      </div>
+
+      <div class="hero-visual reveal" aria-label="Animated high-altitude balloon illustration">
+        <div class="altitude-scale">
+          <span>30 km</span><span>20 km</span><span>10 km</span><span>0 km</span>
+        </div>
+        <div class="balloon-rig">
+          <div class="balloon"></div>
+          <div class="tether"></div>
+          <div class="payload-box">
+            <span class="led"></span>
+            <span class="payload-label">APS</span>
+          </div>
+        </div>
+        <div class="orbit orbit-a"></div>
+        <div class="orbit orbit-b"></div>
+      </div>
+      <div class="scroll-cue">scroll to ascend ↓</div>
+    </section>
+
+    <section id="mission" class="section split">
+      <div class="section-index">01</div>
+      <div>
+        <p class="eyebrow">The mission</p>
+        <h2>Make real atmospheric data feel tangible.</h2>
+      </div>
+      <div class="copy-block">
+        <p>The project develops a practical atmospheric sensing artefact around a Raspberry Pi 5, environmental sensors, particulate sensing, local visualisation and remote data logging.</p>
+        <p>The focus is not laboratory-grade atmospheric analysis. The focus is building an accessible platform that demonstrates the complete journey from a physical environmental change to a recorded, visualised dataset.</p>
+      </div>
+    </section>
+
+    <section id="payload" class="section">
+      <div class="section-heading reveal">
+        <p class="eyebrow">02 / Meet the payload</p>
+        <h2>One small system.<br>Multiple layers of science.</h2>
+      </div>
+
+      <div class="payload-layout">
+        <div class="payload-graphic reveal">
+          <div class="board">
+            <div class="pi-chip">Raspberry Pi 5</div>
+            <div class="enviro-board">Enviro+</div>
+            <div class="lcd">LIVE DATA</div>
+          </div>
+          <div class="sensor-cable"></div>
+          <div class="pm-sensor">PMS5003</div>
+        </div>
+
+        <div class="component-list">
+          <button class="component active" data-component="pi">
+            <span>01</span><strong>Raspberry Pi 5</strong><small>Processing & orchestration</small>
+          </button>
+          <button class="component" data-component="bme">
+            <span>02</span><strong>BME280</strong><small>Temperature, humidity & pressure</small>
+          </button>
+          <button class="component" data-component="pm">
+            <span>03</span><strong>PMS5003</strong><small>PM1.0, PM2.5 & PM10</small>
+          </button>
+          <button class="component" data-component="gas">
+            <span>04</span><strong>MICS6814</strong><small>Relative gas-response channels</small>
+          </button>
+          <button class="component" data-component="ltr">
+            <span>05</span><strong>LTR559</strong><small>Light & proximity interaction</small>
+          </button>
+          <button class="component" data-component="lcd">
+            <span>06</span><strong>ST7735 LCD</strong><small>Immediate local feedback</small>
+          </button>
+        </div>
+      </div>
+
+      <div id="componentDetail" class="detail-card" aria-live="polite">
+        <p class="detail-kicker">Raspberry Pi 5</p>
+        <p>The central controller communicates with the sensors, processes readings, updates the local display and sends selected values to ThingSpeak.</p>
+      </div>
+    </section>
+
+    <section class="section telemetry-band">
+      <div class="section-heading reveal">
+        <p class="eyebrow">03 / What it senses</p>
+        <h2>Environmental telemetry at a glance.</h2>
+      </div>
+
+      <div class="metric-grid">
+        <article class="metric reveal"><span class="metric-icon">°C</span><strong>36.009</strong><p>Mean temperature</p><small>selected laboratory ground test</small></article>
+        <article class="metric reveal"><span class="metric-icon">hPa</span><strong>869.122</strong><p>Mean pressure</p><small>selected laboratory ground test</small></article>
+        <article class="metric reveal"><span class="metric-icon">PM₂.₅</span><strong>16.190</strong><p>Mean PM2.5</p><small>µg/m³</small></article>
+        <article class="metric reveal"><span class="metric-icon">NH₃</span><strong>28.254</strong><p>Mean response index</p><small>relative 0–100 indicator</small></article>
+      </div>
+
+      <p class="scientific-note">The gas channels are resistance-based / relative sensor responses. They are not calibrated atmospheric gas concentrations.</p>
+    </section>
+
+    <section class="section">
+      <div class="section-heading reveal">
+        <p class="eyebrow">04 / Follow one measurement</p>
+        <h2>From air to analysis.</h2>
+      </div>
+
+      <div class="pipeline reveal" aria-label="Atmospheric sensing data pipeline">
+        <div class="pipeline-node"><b>01</b><span>Atmosphere</span></div>
+        <i>→</i>
+        <div class="pipeline-node"><b>02</b><span>Sensors</span></div>
+        <i>→</i>
+        <div class="pipeline-node"><b>03</b><span>Raspberry Pi</span></div>
+        <i>→</i>
+        <div class="pipeline-node"><b>04</b><span>Python</span></div>
+        <i>→</i>
+        <div class="pipeline-node"><b>05</b><span>Display</span></div>
+        <i>→</i>
+        <div class="pipeline-node"><b>06</b><span>ThingSpeak</span></div>
+        <i>→</i>
+        <div class="pipeline-node"><b>07</b><span>Analysis</span></div>
+      </div>
+
+      <div class="heartbeat-card reveal">
+        <div>
+          <p class="eyebrow">20-second heartbeat</p>
+          <h3>One new record roughly every 20 seconds.</h3>
+          <p>The selected ground-test data produced an average observed interval of 20.033 seconds.</p>
+        </div>
+        <div class="heartbeat" aria-hidden="true">
+          <span></span><b>20.033 s</b><span></span><span></span>
+        </div>
+      </div>
+    </section>
+
+    <section id="data" class="section data-section">
+      <div class="section-heading reveal">
+        <p class="eyebrow">05 / Ground test</p>
+        <h2>525 observations.<br>Almost three hours of system behaviour.</h2>
+      </div>
+
+      <div class="dataset-summary reveal">
+        <div><strong>525</strong><span>records</span></div>
+        <div><strong>2 h 54 m 57 s</strong><span>duration</span></div>
+        <div><strong>0</strong><span>invalid PM cycles</span></div>
+        <div><strong>8</strong><span>primary variables</span></div>
+      </div>
+
+      <div class="chart-card reveal">
+        <div class="chart-toolbar">
+          <div>
+            <p class="eyebrow">Interactive repository sample</p>
+            <h3>Explore the CSV data</h3>
+          </div>
+          <div class="chart-tabs" role="group" aria-label="Choose chart variable">
+            <button class="chart-tab active" data-field="temperature">Temperature</button>
+            <button class="chart-tab" data-field="pressure">Pressure</button>
+            <button class="chart-tab" data-field="pm25">PM2.5</button>
+            <button class="chart-tab" data-field="humidity">Humidity</button>
+          </div>
+        </div>
+        <canvas id="dataChart" width="1200" height="420" aria-label="Interactive line chart"></canvas>
+        <p id="chartCaption" class="chart-caption">Loading repository data…</p>
+      </div>
+    </section>
+
+    <section class="section failure-section">
+      <div class="failure-card reveal">
+        <p class="eyebrow">06 / Engineering reality</p>
+        <h2>A sensor timeout should not crash the mission.</h2>
+        <div class="failure-flow">
+          <span>Read PMS5003</span><i>→</i><span>Timeout?</span><i>→</i><span>Retry ×3</span><i>→</i><span>Flag −1</span><i>→</i><span>Keep running</span>
+        </div>
+        <p>The implementation preserves continuity even when a particulate measurement cannot be obtained, allowing failed reads to be identified later instead of silently disappearing.</p>
+      </div>
+    </section>
+
+    <section class="section launch-section">
+      <div class="section-heading reveal">
+        <p class="eyebrow">07 / Balloon mission</p>
+        <h2>The next chapter happens above us.</h2>
+      </div>
+
+      <div class="altitude-story reveal">
+        <div class="altitude-line"></div>
+        <div class="altitude-stop"><b>0 km</b><span>Launch</span><small>ground baseline</small></div>
+        <div class="altitude-stop"><b>10 km</b><span>Troposphere</span><small>pressure falls, temperature changes</small></div>
+        <div class="altitude-stop"><b>20 km</b><span>Stratosphere</span><small>flight measurements</small></div>
+        <div class="altitude-stop pending"><b>MAX</b><span>Peak altitude</span><small>pending launch dataset</small></div>
+      </div>
+
+      <p class="scientific-note">The dissertation currently contains laboratory ground-test results only. Flight data should be analysed separately after the stratospheric launch.</p>
+    </section>
+
+    <section id="findings" class="section">
+      <div class="section-heading reveal">
+        <p class="eyebrow">08 / What the project demonstrates</p>
+        <h2>A complete sensing pipeline, not just a sensor demo.</h2>
+      </div>
+
+      <div class="findings-grid">
+        <article class="finding reveal"><span>01</span><h3>Integrated acquisition</h3><p>Multiple sensing components operate through one Raspberry Pi application.</p></article>
+        <article class="finding reveal"><span>02</span><h3>Local visualisation</h3><p>The LCD turns sensor output into immediate physical feedback.</p></article>
+        <article class="finding reveal"><span>03</span><h3>Remote collection</h3><p>Selected measurements can be transmitted to ThingSpeak for later analysis.</p></article>
+        <article class="finding reveal"><span>04</span><h3>Automated preparation</h3><p>Python scripts clean, organise and summarise collected data consistently.</p></article>
+        <article class="finding reveal"><span>05</span><h3>Resilience</h3><p>Handled failures are recorded without forcing the full acquisition loop to stop.</p></article>
+        <article class="finding reveal"><span>06</span><h3>Scientific limits</h3><p>Relative sensor responses are kept distinct from calibrated concentration claims.</p></article>
+      </div>
+    </section>
+
+    <section class="section final-cta">
+      <div class="reveal">
+        <p class="eyebrow">Built, tested, documented.</p>
+        <h2>Want to see how it works?</h2>
+        <p>Explore the implementation, datasets and analysis code on GitHub.</p>
+        <a class="button primary" href="https://github.com/Caspers-Shadow/Atmospheric-particle-sensor" target="_blank" rel="noreferrer">Open the repository ↗</a>
+      </div>
+      <div class="qr-placeholder reveal" aria-label="QR code placeholder">
+        <span>QR</span>
+        <small>Replace with final site QR</small>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <span>Atmospheric Particle Sensor · Honours Project · 2026</span>
+    <span>Designed as an interactive companion to the project poster.</span>
+  </footer>
+
+  <script src="script.js"></script>
+</body>
+</html>
