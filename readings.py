@@ -27,15 +27,19 @@ accuracy - especially at stratospheric altitude (~30 km) where the
 sensor has not been characterised.
 """
 
+import argparse
 import csv
 import logging
+import math
 import os
+import queue
 import sys
+import threading
 import time
-from dataclasses import dataclass, asdict
+from dataclasses import dataclass, asdict, fields, replace
 from datetime import datetime, timezone
-
-import requests
+from logging.handlers import RotatingFileHandler
+from pathlib import Path
 
 # ---------------------------------------------------------------------------
 # Hardware library imports
@@ -46,34 +50,22 @@ import requests
 # physical sensors attached. On the actual Raspberry Pi 5 payload computer,
 # make sure these packages are installed (see requirements.txt / README).
 # ---------------------------------------------------------------------------
-try:
-    from bme280 import BME280
-    from smbus2 import SMBus
-    from ltr559 import LTR559
-    from enviroplus import gas
-    from pms5003 import PMS5003, ReadTimeoutError as PMS5003ReadTimeoutError
-    import ST7735
-    from PIL import Image, ImageDraw, ImageFont
-    HARDWARE_AVAILABLE = True
-except ImportError as import_error:  # pragma: no cover - hardware not present
-    HARDWARE_AVAILABLE = False
-    _IMPORT_ERROR = import_error
+# Hardware is imported only when SensorManager / LCDDisplay are constructed.
+# CLI help, offline upload checks and analysis do not initialise GPIO or UART.
 
 
 # ---------------------------------------------------------------------------
 # Configuration
 # ---------------------------------------------------------------------------
 
-THINGSPEAK_WRITE_API_KEY = os.environ.get("THINGSPEAK_WRITE_API_KEY", "2FZWRBB132P5J6KX")
 THINGSPEAK_URL = "https://api.thingspeak.com/update"
 
-UPLOAD_INTERVAL_SECONDS = 20        # ThingSpeak upload + full sensor acquisition cadence.
-                                     # PM5003/gas reads happen ONLY at this cadence - do not
-                                     # poll them faster, it desyncs the PMS5003 UART frames.
-LCD_PAGE_DWELL_SECONDS = 0.1        # Fast-tick loop: LCD nav + cheap I2C sensor refresh
+UPLOAD_INTERVAL_SECONDS = 20        # Full acquisition and local logging cadence.
+LCD_PAGE_DWELL_SECONDS = 0.1         # LCD navigation + cheap I2C sensor refresh.
 
-CSV_FILE = "thingspeak_data.csv"
-LOG_FILE = "atmo_system.log"
+DATA_DIR = Path(__file__).resolve().parent / "data"
+CSV_FILE = DATA_DIR / "readings.csv"
+LOG_FILE = DATA_DIR / "atmo_system.log"
 
 # Gas index calibration baselines (raw sensor resistance, ohms).
 # These represent a "clean air" baseline captured during sensor warm-up /
@@ -81,20 +73,25 @@ LOG_FILE = "atmo_system.log"
 # unit and flight, and are NOT laboratory-calibrated values - see PRD
 # limitations. Override via environment variables if a fresh calibration
 # has been performed before launch.
-GAS_BASELINE_OXIDISING = float(os.environ.get("GAS_BASELINE_OXIDISING", 20000))
-GAS_BASELINE_REDUCING = float(os.environ.get("GAS_BASELINE_REDUCING", 200000))
-GAS_BASELINE_NH3 = float(os.environ.get("GAS_BASELINE_NH3", 200000))
+GAS_BASELINE_OXIDISING = 20000
+GAS_BASELINE_REDUCING = 200000
+GAS_BASELINE_NH3 = 200000
 
 
 # ---------------------------------------------------------------------------
 # Logging setup
 # ---------------------------------------------------------------------------
 
-def configure_logging():
+def configure_logging(log_path=LOG_FILE):
     logger = logging.getLogger("atmo_system")
     logger.setLevel(logging.DEBUG)
 
-    file_handler = logging.FileHandler(LOG_FILE)
+    for handler in logger.handlers[:]:
+        logger.removeHandler(handler)
+        handler.close()
+    file_handler = RotatingFileHandler(
+        log_path, maxBytes=2_000_000, backupCount=3, encoding="utf-8"
+    )
     file_handler.setLevel(logging.DEBUG)
 
     console_handler = logging.StreamHandler(sys.stdout)
@@ -111,7 +108,7 @@ def configure_logging():
     return logger
 
 
-logger = configure_logging()
+logger = logging.getLogger("atmo_system")
 
 
 # ---------------------------------------------------------------------------
@@ -164,12 +161,19 @@ class GasIndexCalculator:
     baseline resistance.
     """
 
-    def __init__(self, baseline_ox=GAS_BASELINE_OXIDISING,
-                 baseline_red=GAS_BASELINE_REDUCING,
-                 baseline_nh3=GAS_BASELINE_NH3):
+    def __init__(self, baseline_ox=None, baseline_red=None, baseline_nh3=None):
+        baseline_ox = float(os.environ.get("GAS_BASELINE_OXIDISING", GAS_BASELINE_OXIDISING)
+                            if baseline_ox is None else baseline_ox)
+        baseline_red = float(os.environ.get("GAS_BASELINE_REDUCING", GAS_BASELINE_REDUCING)
+                             if baseline_red is None else baseline_red)
+        baseline_nh3 = float(os.environ.get("GAS_BASELINE_NH3", GAS_BASELINE_NH3)
+                             if baseline_nh3 is None else baseline_nh3)
         self.baseline_ox = baseline_ox
         self.baseline_red = baseline_red
         self.baseline_nh3 = baseline_nh3
+        if any(not math.isfinite(value) or value <= 0 for value in
+               (baseline_ox, baseline_red, baseline_nh3)):
+            raise ValueError("Gas baselines must be finite, positive resistances")
 
     @staticmethod
     def _clamp(value, low=0.0, high=100.0):
@@ -177,22 +181,22 @@ class GasIndexCalculator:
 
     def oxidising_index(self, raw_ohms):
         # Resistance rises with oxidising gas concentration.
-        if raw_ohms <= 0 or self.baseline_ox <= 0:
-            return 0.0
+        if not math.isfinite(raw_ohms) or raw_ohms <= 0:
+            return -1.0
         ratio = (raw_ohms - self.baseline_ox) / self.baseline_ox
         return self._clamp(ratio * 100.0)
 
     def reducing_index(self, raw_ohms):
         # Resistance falls with reducing gas concentration.
-        if raw_ohms <= 0 or self.baseline_red <= 0:
-            return 0.0
+        if not math.isfinite(raw_ohms) or raw_ohms <= 0:
+            return -1.0
         ratio = (self.baseline_red - raw_ohms) / self.baseline_red
         return self._clamp(ratio * 100.0)
 
     def nh3_index(self, raw_ohms):
         # Resistance falls with NH3 / propane / iso-butane concentration.
-        if raw_ohms <= 0 or self.baseline_nh3 <= 0:
-            return 0.0
+        if not math.isfinite(raw_ohms) or raw_ohms <= 0:
+            return -1.0
         ratio = (self.baseline_nh3 - raw_ohms) / self.baseline_nh3
         return self._clamp(ratio * 100.0)
 
@@ -202,6 +206,8 @@ class GasIndexCalculator:
         report. Per PRD limitations, this system cannot claim laboratory
         accuracy, so confidence is always capped at LOW/MEDIUM.
         """
+        if min(oxidising_idx, reducing_idx, nh3_idx) < 0:
+            return "UNAVAILABLE"
         spread = max(oxidising_idx, reducing_idx, nh3_idx) - min(
             oxidising_idx, reducing_idx, nh3_idx
         )
@@ -241,12 +247,20 @@ class SensorManager:
     """
 
     def __init__(self):
-        if not HARDWARE_AVAILABLE:
+        try:
+            from bme280 import BME280
+            from smbus2 import SMBus
+            from ltr559 import LTR559
+            from enviroplus import gas
+            from pms5003 import PMS5003, ReadTimeoutError
+        except ImportError as import_error:
             raise RuntimeError(
-                f"Required hardware libraries are not installed: {_IMPORT_ERROR}. "
+                f"Required hardware libraries are not installed: {import_error}. "
                 "See requirements.txt / README for setup on the Raspberry Pi."
-            )
+            ) from import_error
 
+        self._gas = gas
+        self._pms_timeout = ReadTimeoutError
         self._bus = SMBus(1)
         self.bme280 = BME280(i2c_dev=self._bus)
         self.ltr559 = LTR559()
@@ -271,12 +285,8 @@ class SensorManager:
         Read PM1.0 / PM2.5 / PM10 from the PMS5003, tolerating sensor
         timeouts as required by the PRD ("Recover from PMS5003 timeouts").
 
-        IMPORTANT: only call this at the upload/logging cadence (e.g. once
-        every 20s), not on every fast loop tick. The PMS5003 has its own
-        ~2.3s internal update interval; polling it much faster than that
-        desyncs the UART frame buffer and causes frequent ReadTimeoutError
-        failures - this was the root cause of missing PM/gas data and
-        ThingSpeak 400 errors in earlier testing.
+        Keep PM reads at the 20-second logging cadence so timeout retries
+        do not run on every LCD tick. The sensor library handles UART frames.
 
         Returns (pm1_0, pm2_5, pm10) as floats, using -1 as a sentinel for
         "sensor unavailable this cycle" (matches the proven reference
@@ -290,7 +300,7 @@ class SensorManager:
                     float(data.pm_ug_per_m3(2.5)),
                     float(data.pm_ug_per_m3(10)),
                 )
-            except PMS5003ReadTimeoutError:
+            except self._pms_timeout:
                 logger.warning(
                     "PMS5003 read timeout (attempt %d/%d)", attempt, retries
                 )
@@ -303,14 +313,13 @@ class SensorManager:
 
     def read_gas_raw(self):
         """Read raw MICS6814 element resistances (ohms) via enviroplus.gas.
-        Only call this at the upload/logging cadence, same reasoning as
-        read_particulates - avoid hammering the sensor faster than needed."""
+        Read this at the local logging cadence, independently of networking."""
         try:
-            readings = gas.read_all()
+            readings = self._gas.read_all()
             return readings.oxidising, readings.reducing, readings.nh3
         except Exception:
-            logger.exception("Gas sensor read failure; returning zeros")
-            return 0.0, 0.0, 0.0
+            logger.exception("Gas sensor read failure; returning -1 sentinels")
+            return -1.0, -1.0, -1.0
 
     def take_fast_reading(self):
         """
@@ -324,9 +333,7 @@ class SensorManager:
     def take_reading(self):
         """
         Assemble a full SensorReading for one acquisition/upload cycle.
-        Call this at most once per UPLOAD_INTERVAL_SECONDS - it includes
-        the PMS5003 and gas sensor reads, which must not be polled faster
-        than roughly once every few seconds (see read_particulates).
+        Call this at the local logging cadence; LCD ticks refresh only I2C data.
         """
         temperature_c, humidity_pct, pressure_hpa, light_lux = self.read_environment()
         pm1_0, pm2_5, pm10 = self.read_particulates()
@@ -352,6 +359,9 @@ class SensorManager:
             reducing_index=round(red_idx, 1),
             nh3_index=round(nh3_idx, 1),
         )
+
+    def close(self):
+        self._bus.close()
 
 
 # ---------------------------------------------------------------------------
@@ -381,15 +391,17 @@ class LCDDisplay:
     PROXIMITY_TRIGGER = 1500  # empirically reasonable LTR559 proximity threshold
 
     def __init__(self, ltr559_sensor):
-        if not HARDWARE_AVAILABLE:
-            raise RuntimeError("LCD hardware libraries are not available.")
+        import st7735
+        from PIL import Image, ImageDraw, ImageFont
 
+        self._image = Image
+        self._draw = ImageDraw
         self.ltr559 = ltr559_sensor
-        self.disp = ST7735.ST7735(
+        self.disp = st7735.ST7735(
             port=0,
             cs=1,
-            dc=9,
-            backlight=12,
+            dc="GPIO9",
+            backlight="GPIO12",
             rotation=270,
             spi_speed_hz=10000000,
         )
@@ -427,8 +439,8 @@ class LCDDisplay:
         }
         value_text = value_map.get(label, "N/A")
 
-        image = Image.new("RGB", (self.width, self.height), color=(0, 0, 0))
-        draw = ImageDraw.Draw(image)
+        image = self._image.new("RGB", (self.width, self.height), color=(0, 0, 0))
+        draw = self._draw.Draw(image)
         draw.text((5, 30), label, font=self.font, fill=(255, 255, 255))
         draw.text((5, 60), value_text, font=self.font, fill=(0, 255, 120))
         self.disp.display(image)
@@ -446,10 +458,21 @@ class ThingSpeakUploader:
     upload failures").
     """
 
-    def __init__(self, api_key=THINGSPEAK_WRITE_API_KEY, url=THINGSPEAK_URL, timeout=10):
-        self.api_key = api_key
+    def __init__(self, api_key=None, url=THINGSPEAK_URL, timeout=(3, 5), offline=False):
+        self.api_key = (os.environ.get("THINGSPEAK_WRITE_API_KEY", "")
+                        if api_key is None else api_key).strip()
         self.url = url
         self.timeout = timeout
+        self.enabled = bool(self.api_key) and not offline
+        self._next_attempt = 0.0
+        self._retry_delay = UPLOAD_INTERVAL_SECONDS
+        self._requests = None
+        if self.enabled:
+            import requests
+            self._requests = requests
+        else:
+            logger.info("Cloud uploads disabled (%s); local logging continues",
+                        "offline mode" if offline else "no API key configured")
 
     @staticmethod
     def _clean_field(value):
@@ -464,14 +487,15 @@ class ThingSpeakUploader:
             return None
         try:
             f = float(value)
-            if f != f:  # NaN check
+            if not math.isfinite(f):
                 return None
         except (TypeError, ValueError):
             return None
         return value
 
     def upload(self, reading: SensorReading):
-
+        if not self.enabled or time.monotonic() < self._next_attempt:
+            return False
         raw_payload = {
             "field1": reading.temperature_c,
             "field2": reading.humidity_pct,
@@ -485,13 +509,18 @@ class ThingSpeakUploader:
             "field8": reading.reducing_index,    # CO-like index
         }
 
-        payload = {"api_key": self.api_key}
+        payload = {"api_key": self.api_key, "created_at": reading.timestamp_utc}
 
         dropped = []
 
         for key, value in raw_payload.items():
 
             cleaned = self._clean_field(value)
+            # A failed PM/gas read is not a negative concentration/index.
+            if cleaned is not None and key in (
+                    "field4", "field5", "field6", "field7", "field8"):
+                if float(cleaned) < 0:
+                    cleaned = None
 
             if cleaned is None:
                 dropped.append(key)
@@ -506,33 +535,31 @@ class ThingSpeakUploader:
 
         try:
 
-            response = requests.get(
+            response = self._requests.post(
                 self.url,
-                params=payload,
-                timeout=self.timeout
+                data=payload,
+                timeout=self.timeout,
+                allow_redirects=False,
             )
 
             if not response.ok:
 
                 logger.error(
-                    "ThingSpeak upload failed: "
-                    "HTTP %s | body=%r | payload=%r",
+                    "ThingSpeak upload failed: HTTP %s",
                     response.status_code,
-                    response.text,
-                    payload
                 )
-
+                self._back_off()
                 return False
 
             entry_id = response.text.strip()
 
-            if entry_id == "0":
+            if not entry_id.isascii() or not entry_id.isdigit() or int(entry_id) <= 0:
 
                 logger.warning(
                     "ThingSpeak rejected update "
-                    "(rate limit or invalid key)."
+                    "(rate limit, invalid key or unexpected response)."
                 )
-
+                self._back_off()
                 return False
 
             logger.info(
@@ -540,15 +567,71 @@ class ThingSpeakUploader:
                 entry_id
             )
 
+            self._retry_delay = UPLOAD_INTERVAL_SECONDS
+            self._next_attempt = time.monotonic() + UPLOAD_INTERVAL_SECONDS
             return True
 
-        except requests.exceptions.RequestException:
-
-            logger.exception(
-                "ThingSpeak upload failed; continuing operation."
-            )
-
+        except self._requests.exceptions.RequestException as error:
+            # Exception text can include request URLs or credentials. Log type only.
+            logger.warning("ThingSpeak upload failed (%s); local logging continues",
+                           type(error).__name__)
+            self._back_off()
             return False
+
+    def _back_off(self):
+        self._next_attempt = time.monotonic() + self._retry_delay
+        logger.info("Next upload attempt in at least %s seconds", self._retry_delay)
+        self._retry_delay = min(300, self._retry_delay * 2)
+
+
+class BackgroundUploader:
+    """Keep network waits off the acquisition/LCD loop; retain latest sample only.
+
+    Every sample is already on disk. This bounded queue is for live telemetry,
+    not a durable backfill queue. A daemon worker also prevents a stalled DNS
+    resolver from blocking operator shutdown.
+    """
+
+    def __init__(self, uploader):
+        self.uploader = uploader
+        self._pending = queue.Queue(maxsize=1)
+        self._stop = threading.Event()
+        self._thread = None
+        if uploader.enabled:
+            self._thread = threading.Thread(target=self._run, daemon=True,
+                                            name="thingspeak-upload")
+            self._thread.start()
+
+    def submit(self, reading):
+        if self._thread is None:
+            return
+        # The LCD refreshes its cached reading; the upload must be a snapshot.
+        snapshot = replace(reading)
+        try:
+            self._pending.put_nowait(snapshot)
+        except queue.Full:
+            try:
+                self._pending.get_nowait()
+            except queue.Empty:
+                pass
+            self._pending.put_nowait(snapshot)
+
+    def _run(self):
+        while not self._stop.is_set():
+            try:
+                reading = self._pending.get(timeout=0.2)
+            except queue.Empty:
+                continue
+            try:
+                self.uploader.upload(reading)
+            except Exception as error:
+                logger.error("Upload worker error (%s); local logging continues",
+                             type(error).__name__)
+
+    def close(self):
+        self._stop.set()
+        if self._thread is not None:
+            self._thread.join(timeout=1)
 
 
 # ---------------------------------------------------------------------------
@@ -596,101 +679,135 @@ def print_console_report(reading: SensorReading,
     print("=====================\n")
 
 
+def validate_csv_header(csv_path):
+    """Refuse to append logger rows to a ThingSpeak export / different schema."""
+    path = Path(csv_path)
+    if path.exists() and path.stat().st_size:
+        with path.open(newline="", encoding="utf-8-sig") as handle:
+            header = next(csv.reader(handle), None)
+        if header != [field.name for field in fields(SensorReading)]:
+            raise ValueError(f"CSV header mismatch in {path}; use a new --data-dir")
+
+
 def write_csv_row(reading: SensorReading, csv_path=CSV_FILE):
-    """Append a reading to the local CSV store, writing a header on first use."""
-    file_exists = os.path.isfile(csv_path)
+    """Append and flush a sample to disk before attempting a cloud upload."""
+    validate_csv_header(csv_path)
+    path = Path(csv_path)
+    file_exists = path.exists() and path.stat().st_size > 0
     row = reading.as_csv_row()
-    with open(csv_path, "a", newline="") as f:
+    with path.open("a", newline="", encoding="utf-8") as f:
         writer = csv.DictWriter(f, fieldnames=row.keys())
         if not file_exists:
             writer.writeheader()
         writer.writerow(row)
+        f.flush()
+        os.fsync(f.fileno())
 
 
 # ---------------------------------------------------------------------------
 # Orchestration
 # ---------------------------------------------------------------------------
 
-def main():
+def positive_seconds(value):
+    seconds = float(value)
+    if not math.isfinite(seconds) or seconds <= 0:
+        raise argparse.ArgumentTypeError("must be a finite number greater than zero")
+    return seconds
 
-    import os
 
-    print("\nCurrent Directory:")
-    print(os.getcwd())
-
-    logger.info("Starting atmospheric monitoring system")
-    
-    logger.info("Starting atmospheric monitoring system")
-
+def main(argv=None):
+    parser = argparse.ArgumentParser(description="Read sensors and log locally; optionally upload.")
+    parser.add_argument("--offline", action="store_true", help="Never attempt cloud requests")
+    parser.add_argument("--data-dir", type=Path, default=DATA_DIR,
+                        help="Directory for readings.csv and rotating logs (default: repo/data)")
+    parser.add_argument("--duration", type=positive_seconds,
+                        help="Stop after this many seconds of acquisition (default: continuous)")
+    parser.add_argument("--no-lcd", action="store_true", help="Run without LCD updates")
+    args = parser.parse_args(argv)
+    data_dir = args.data_dir.expanduser().resolve()
+    csv_path = data_dir / "readings.csv"
     try:
+        data_dir.mkdir(parents=True, exist_ok=True)
+        configure_logging(data_dir / "atmo_system.log")
+        validate_csv_header(csv_path)
+        # Fail before hardware startup if the local output cannot be opened.
+        with csv_path.open("a", encoding="utf-8"):
+            pass
+    except (OSError, ValueError) as error:
+        print(f"FATAL: Cannot prepare local storage: {error}", file=sys.stderr)
+        return 1
+
+    print(f"Local readings: {csv_path}")
+    logger.info("Starting atmospheric monitoring system; data directory=%s", data_dir)
+    try:
+        uploader = ThingSpeakUploader(offline=args.offline)
         sensors = SensorManager()
-    except RuntimeError as e:
-        logger.critical(str(e))
-        print(f"FATAL: {e}")
-        sys.exit(1)
+    except Exception as error:
+        logger.exception("Startup failed")
+        print(f"FATAL: {error}", file=sys.stderr)
+        return 1
 
+    lcd = None
+    if not args.no_lcd:
+        try:
+            lcd = LCDDisplay(sensors.ltr559)
+        except Exception:
+            logger.exception("LCD unavailable; continuing without display output")
+
+    worker = BackgroundUploader(uploader)
+    started = time.monotonic()
+    next_reading_time = started
+    latest_reading = None
+    rows_written = 0
+    logger.info("Entering main loop; cloud uploads %s", "enabled" if uploader.enabled else "disabled")
     try:
-        lcd = LCDDisplay(sensors.ltr559)
-    except RuntimeError:
-        logger.warning("LCD unavailable; continuing without display output")
-        lcd = None
+        while args.duration is None or time.monotonic() - started < args.duration:
+            cycle_start = time.monotonic()
+            if cycle_start >= next_reading_time:
+                # Advance even on failure; avoid a sensor retry/log storm at 10 Hz.
+                next_reading_time = cycle_start + UPLOAD_INTERVAL_SECONDS
+                try:
+                    latest_reading = sensors.take_reading()
+                except Exception:
+                    logger.exception("Sensor acquisition failed; retrying next scheduled cycle")
+                else:
+                    # Local storage is essential during an outage. Stop visibly if
+                    # it fails instead of silently discarding the flight data.
+                    try:
+                        write_csv_row(latest_reading, csv_path)
+                    except (OSError, ValueError):
+                        logger.exception("FATAL: Local CSV write failed; stopping acquisition")
+                        return 1
+                    rows_written += 1
+                    print_console_report(latest_reading, sensors.gas_calc)
+                    worker.submit(latest_reading)
 
-    uploader = ThingSpeakUploader()
-    last_upload_time = 0.0
-    latest_reading = None  # most recent FULL reading (incl. PM/gas), for LCD/CSV
+            if lcd is not None and latest_reading is not None:
+                try:
+                    temperature_c, humidity_pct, pressure_hpa, light_lux = sensors.take_fast_reading()
+                    display_reading = replace(
+                        latest_reading, temperature_c=round(temperature_c, 2),
+                        humidity_pct=round(humidity_pct, 2), pressure_hpa=round(pressure_hpa, 2),
+                        light_lux=round(light_lux, 2),
+                    )
+                    lcd.render(display_reading)
+                except Exception:
+                    logger.exception("LCD refresh failed; disabling display for this run")
+                    lcd = None
 
-    logger.info("Entering main loop")
-    while True:
-        cycle_start = time.time()
-
-        # ---- Full acquisition (PM5003 + gas) only at the upload cadence.
-        # These sensors must not be polled faster than roughly once every
-        # few seconds - see SensorManager.read_particulates docstring.
-        if cycle_start - last_upload_time >= UPLOAD_INTERVAL_SECONDS:
-            try:
-                latest_reading = sensors.take_reading()
-            except Exception:
-                logger.exception("Unhandled error during sensor acquisition; "
-                                  "skipping this cycle and continuing")
-                time.sleep(LCD_PAGE_DWELL_SECONDS)
-                continue
-
-            print_console_report(latest_reading, sensors.gas_calc)
-
-            try:
-                write_csv_row(latest_reading)
-            except Exception:
-                logger.exception("Failed to write local CSV row")
-
-            uploader.upload(latest_reading)
-            last_upload_time = cycle_start
-
-        # ---- Fast tick: cheap I2C sensors + LCD navigation, every cycle.
-        # Refreshes temperature/humidity/pressure/light for display purposes
-        # without touching the PMS5003 or gas sensor.
-        if lcd is not None and latest_reading is not None:
-            try:
-                temperature_c, humidity_pct, pressure_hpa, light_lux = sensors.take_fast_reading()
-                # Update the cached reading's cheap fields so the LCD shows
-                # fresh env data between full acquisition cycles, while PM/
-                # gas fields stay at their last-known values.
-                latest_reading.temperature_c = round(temperature_c, 2)
-                latest_reading.humidity_pct = round(humidity_pct, 2)
-                latest_reading.pressure_hpa = round(pressure_hpa, 2)
-                latest_reading.light_lux = round(light_lux, 2)
-                lcd.render(latest_reading)
-            except Exception:
-                logger.exception("LCD render failure; continuing without display")
-
-        elapsed = time.time() - cycle_start
-        sleep_time = max(0.0, LCD_PAGE_DWELL_SECONDS - elapsed)
-        time.sleep(sleep_time)
+            time.sleep(max(0.0, LCD_PAGE_DWELL_SECONDS - (time.monotonic() - cycle_start)))
+    except KeyboardInterrupt:
+        logger.info("Shutdown requested by operator")
+    finally:
+        worker.close()
+        sensors.close()
+        print(f"\nStopped. Saved {rows_written} readings to {csv_path}")
+        logger.info("Stopped; saved %d readings", rows_written)
+    if rows_written == 0:
+        logger.error("No readings were saved during this run")
+        return 1
+    return 0
 
 
 if __name__ == "__main__":
-    try:
-        main()
-    except KeyboardInterrupt:
-        logger.info("Shutdown requested by operator (KeyboardInterrupt)")
-        print("\nShutting down atmospheric monitoring system.")
-        sys.exit(0)
+    sys.exit(main())

@@ -1,0 +1,9 @@
+__pycache__/
+*.py[cod]
+.venv/
+.test-deps/
+data/
+hil-results/
+*.log
+.env
+.~lock.*#
