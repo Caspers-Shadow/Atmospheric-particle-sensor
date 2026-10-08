@@ -51,15 +51,24 @@ UART overlays speculatively: report startup errors and actual device paths.
 
 ## 2. Explicit offline mode, five minutes
 
-Use a **new directory per test**. Re-running a capture appends rows; choose
-`offline-2` if `offline` already exists. Disable Wi-Fi using the desktop
-network menu and unplug Ethernet, then run:
+Run the helper from the project folder:
 
 ```bash
-python3 readings.py --offline --duration 300 --data-dir hil-results/offline
-python3 check_run.py hil-results/offline/readings.csv --min-rows 12 --max-gap 35 --require-sensors
-tail -n 20 hil-results/offline/atmo_system.log
+bash run_offline_test.sh
 ```
+
+It uses your active Python environment, or the project's `.venv`, or the
+Pimoroni environment if present, otherwise `python3`. To select another
+interpreter, use `ATMO_PYTHON=/path/to/python bash run_offline_test.sh`.
+
+The script asks you to disable Wi-Fi and unplug Ethernet, then starts when
+you press Enter. It does not change network settings or install packages.
+It creates a unique `hil-results/offline-...` directory, runs the five-minute
+capture and checker, includes the log tail, and records your LCD observation.
+Send back `report.txt` from the directory printed at the end. The CSV, full
+console output and log are preserved alongside the report.
+
+For the manual commands below, replace `RUN_DIR` with that printed directory.
 
 Expected:
 
@@ -116,8 +125,8 @@ without a key tests automatic local-only operation, not upload failures.
 ## 4. Restart while still offline
 
 Disconnect all network links, then use the desktop's normal shutdown/reboot
-controls. After boot, record `date -Is`, reactivate the Python environment,
-and repeat step 2 with `--data-dir hil-results/offline-boot`.
+controls. After boot, reactivate the Python environment and run the helper
+again. It records `date -Is` and creates a fresh capture directory.
 
 Expected: start and log without DNS, Wi-Fi or NTP. Check that the date remains
 correct. A successful capture with an incorrect date is not a timestamp pass.
@@ -126,7 +135,7 @@ This program does not automatically start on boot yet.
 ## 5. Analysis while offline
 
 ```bash
-python3 analyse.py --input hil-results/offline/readings.csv --output-dir hil-results/offline/analysis
+python3 analyse.py --input RUN_DIR/readings.csv --output-dir RUN_DIR/analysis
 ```
 
 Expected: one summary, cleaned data and gas report, no date prompts and no

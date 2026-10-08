@@ -12,6 +12,7 @@ once the dependencies and Pi interfaces are configured.
 | `readings.py` | Sensor acquisition, local CSV, LCD and optional background uploads |
 | `analyse.py` | Offline cleaning, statistics, gas trends and experiment extraction |
 | `check_run.py` | Check a HIL capture using only the Python standard library |
+| `run_offline_test.sh` | Five-minute offline HIL capture, checker and saved report |
 | `requirements.txt` | Pi hardware, networking and analysis dependencies |
 | `requirements-analysis.txt` | Analysis dependencies for a computer without hardware |
 | `requirements-dev.txt` | Dependencies for the simulated regression tests |
