@@ -1,0 +1,15 @@
+mariska@Mariska:~/Desktop/Atmospheric-particle-sensor $ cat /etc/os-release
+PRETTY_NAME="Debian GNU/Linux 13 (trixie)"
+NAME="Debian GNU/Linux"
+VERSION_ID="13"
+VERSION="13 (trixie)"
+VERSION_CODENAME=trixie
+DEBIAN_VERSION_FULL=13.6
+ID=debian
+HOME_URL="https://www.debian.org/"
+SUPPORT_URL="https://www.debian.org/support"
+BUG_REPORT_URL="https://bugs.debian.org/"
+mariska@Mariska:~/Desktop/Atmospheric-particle-sensor $ python3 --version
+Python 3.13.5
+mariska@Mariska:~/Desktop/Atmospheric-particle-sensor $ date -Is
+2026-10-08T11:31:30+02:00
