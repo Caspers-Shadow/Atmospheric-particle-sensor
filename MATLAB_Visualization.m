@@ -9,7 +9,7 @@ if ~exist('readChannelID', 'var')
     readChannelID = 3429238;
 end
 if ~exist('readAPIKey', 'var')
-    readAPIKey = getenv('THINGSPEAK_READ_API_KEY');
+    readAPIKey = getenv('WORO45TD8DURD3E6');
 end
 if ~exist('flightStartUTC', 'var') || ~exist('flightEndUTC', 'var')
     error('Set flightStartUTC and flightEndUTC using matlab_flight_window.txt.');
