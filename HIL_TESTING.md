@@ -68,6 +68,16 @@ capture and checker, includes the log tail, and records your LCD observation.
 Send back `report.txt` from the directory printed at the end. The CSV, full
 console output and log are preserved alongside the report.
 
+Reports, CSVs and console output under `hil-results/` can be committed to this
+branch. Raw `.log` files remain ignored; the report includes the relevant log
+tail. After reconnecting, upload the existing results with:
+
+```bash
+git add -- hil-results
+git commit -m "Add offline HIL test results"
+git push
+```
+
 For the manual commands below, replace `RUN_DIR` with that printed directory.
 
 Expected:

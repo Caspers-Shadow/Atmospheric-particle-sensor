@@ -3,7 +3,6 @@ __pycache__/
 .venv/
 .test-deps/
 data/
-hil-results/
 *.log
 .env
 .~lock.*#
