@@ -1,0 +1,5 @@
+Rows: 15
+UTC range: 2026-10-08T09:53:45.385881+00:00 -> 2026-10-08T09:58:25.423880+00:00
+Largest gap: 20.02 seconds
+Unavailable values: none
+PASS
