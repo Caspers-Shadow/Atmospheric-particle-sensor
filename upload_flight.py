@@ -24,7 +24,9 @@ from thingspeak_schema import (
 
 ROOT = Path(__file__).resolve().parent
 BATCH_SIZE = 960
-READ_LIMIT = 8000
+# Results <=100 bypass ThingSpeak's five-minute JSON cache. Split full windows
+# at this lower cap so post-write verification and resumed uploads see fresh data.
+READ_LIMIT = 100
 WRITE_INTERVAL = 16  # ThingSpeak requires at least 15 seconds between bulk calls.
 FIELD_LABELS = {
     "field1": {"temperature", "temperaturec", "temp"},
@@ -74,6 +76,14 @@ def load_flight(path, now=None):
         updates.append(update)
     if not updates:
         raise ValueError("No readings in the input CSV")
+    # A recovered entry identifies its complete flight window. The cloud
+    # dashboard can follow later flights without someone editing its dates.
+    first_second = int(timestamp_key(updates[0]["created_at"]).timestamp())
+    last_second = int(timestamp_key(updates[-1]["created_at"]).timestamp())
+    for update in updates:
+        metadata = json.loads(update["status"])
+        metadata.update(fs=first_second, fe=last_second)
+        update["status"] = json.dumps(metadata, separators=(",", ":"), allow_nan=False)
     return source, updates
 
 
@@ -101,8 +111,16 @@ def matching_entry(expected, actual):
             return False
     try:
         # This also proves that status was returned and belongs to this entry.
-        return bool(decode_status(actual.get("status"), actual["created_at"])) and (
-            json.loads(expected["status"]) == json.loads(actual["status"]))
+        if not decode_status(actual.get("status"), actual["created_at"]):
+            return False
+        wanted_status = json.loads(expected["status"])
+        stored_status = json.loads(actual["status"])
+        # Earlier verified uploads contain every measurement but predate the
+        # optional flight-window hints. They remain valid and are preserved.
+        for name in ("fs", "fe"):
+            if name not in stored_status:
+                wanted_status.pop(name, None)
+        return wanted_status == stored_status
     except (ValueError, TypeError, KeyError):
         return False
 

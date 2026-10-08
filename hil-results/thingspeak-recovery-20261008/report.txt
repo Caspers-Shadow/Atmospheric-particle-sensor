@@ -1,0 +1,14 @@
+ThingSpeak recovery verification - 8 October 2026
+Channel: 3429238
+Source: hil-results/offline-20261008-115334-YqyObx/readings.csv
+Uploaded: both Pi captures, 15 historical readings each (30 total)
+Read-back: PASS - all 14 columns and original microsecond timestamps match
+Python analysis: PASS - 15 cleaned rows and gas report for each capture
+Repeat recovery: PASS - 15 already present, 0 new entries, 0 write batches
+Upload ran on the development computer using the Pi CSV, not on the Pi itself.
+MATLAB cloud dashboard: PASS - saved private app 676730 rendered both captures
+Automatic flight selection: PASS - older capture uploaded later selected by last_entry_id
+Current dashboard window (SAST): 8 October 2026, 11:46:09-11:50:49, 15 readings
+MATLAB local checks: PASS - Pi fixture, automatic selection, 8005 rows, unavailable gaps
+Regression tests: PASS - 39 tests, including uncached multi-batch recovery
+Replay from the Pi itself, large live flights and interrupted live recovery remain untested.

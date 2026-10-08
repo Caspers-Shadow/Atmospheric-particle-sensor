@@ -154,6 +154,10 @@ class FlightReplayTests(unittest.TestCase):
         self.assertEqual(repeated["already_present"], 1001)
         self.assertEqual(repeated["recovered"], 0)
         self.assertEqual(len(self.server.posts), 2)
+        # ThingSpeak caches JSON reads above 100 results for five minutes.
+        # The immediate verification must use uncached requests even for flights
+        # spanning multiple bulk writes, or it could retry against stale data.
+        self.assertTrue(all(params["results"] <= 100 for params in self.server.gets))
 
     def test_timeout_after_accepted_batch_is_verified_without_second_post(self):
         _, updates = upload_flight.load_flight(HIL_CSV)
@@ -162,6 +166,27 @@ class FlightReplayTests(unittest.TestCase):
         self.assertEqual(len(verified), 15)
         self.assertEqual(len(self.server.posts), 1)
         self.assertEqual(result["recovered"], 15)
+
+    def test_recovery_entries_identify_complete_flight_for_dashboard(self):
+        _, updates = upload_flight.load_flight(HIL_CSV)
+        expected_start = int(timestamp_key(updates[0]["created_at"]).timestamp())
+        expected_end = int(timestamp_key(updates[-1]["created_at"]).timestamp())
+        for update in updates:
+            metadata = json.loads(update["status"])
+            self.assertEqual((metadata["fs"], metadata["fe"]), (expected_start, expected_end))
+
+    def test_older_complete_entries_without_window_hints_still_resume(self):
+        _, updates = upload_flight.load_flight(HIL_CSV)
+        for update in updates:
+            old = dict(update)
+            metadata = json.loads(old["status"])
+            metadata.pop("fs")
+            metadata.pop("fe")
+            old["status"] = json.dumps(metadata)
+            self.server.store(old)
+        _, result = self.run_replay(updates)
+        self.assertEqual(result["already_present"], 15)
+        self.assertEqual(self.server.posts, [])
 
     def test_partial_upload_retries_only_missing_entries(self):
         _, updates = upload_flight.load_flight(HIL_CSV)

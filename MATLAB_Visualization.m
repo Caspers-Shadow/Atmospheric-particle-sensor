@@ -1,5 +1,7 @@
 % Full-flight dashboard for ThingSpeak MATLAB Visualization or desktop MATLAB.
-% Paste the lines from upload/matlab_flight_window.txt above this script.
+% Recovered entries carry their flight window; follow the most recent upload
+% automatically unless explicit flightStartUTC/flightEndUTC are supplied.
+% Older uploads can use the lines from upload/matlab_flight_window.txt.
 % Supply readAPIKey privately in the visualization/workspace, or through the
 % THINGSPEAK_READ_API_KEY environment variable on desktop MATLAB.
 % Original light/raw gas/NH3 values are recovered by analyse.py from status;
@@ -9,13 +11,49 @@ if ~exist('readChannelID', 'var')
     readChannelID = 3429238;
 end
 if ~exist('readAPIKey', 'var')
-    readAPIKey = getenv('WORO45TD8DURD3E6');
-end
-if ~exist('flightStartUTC', 'var') || ~exist('flightEndUTC', 'var')
-    error('Set flightStartUTC and flightEndUTC using matlab_flight_window.txt.');
+    readAPIKey = getenv('THINGSPEAK_READ_API_KEY');
 end
 if isempty(readAPIKey)
     error('Set readAPIKey privately to the channel Read API key.');
+end
+if ~exist('autoFlightWindow', 'var')
+    autoFlightWindow = ~exist('flightStartUTC', 'var') || ~exist('flightEndUTC', 'var');
+end
+if autoFlightWindow
+    try
+        latest = webread(sprintf('https://api.thingspeak.com/channels/%d/feeds.json', readChannelID), ...
+            'api_key', readAPIKey, 'results', 1, 'status', 'true', weboptions('Timeout', 30));
+        % A recovered older flight has newer entry IDs but older timestamps.
+        % Read the last inserted entry, rather than the latest acquisition time.
+        latest.feeds = webread(sprintf('https://api.thingspeak.com/channels/%d/feeds/%d.json', ...
+            readChannelID, latest.channel.last_entry_id), 'api_key', readAPIKey, ...
+            'status', 'true', weboptions('Timeout', 30));
+    catch
+        error('Cannot read the latest flight metadata. Check channel access and the Read API key.');
+    end
+    if isstruct(latest) && isfield(latest, 'feeds') && ~isempty(latest.feeds) ...
+            && isfield(latest.feeds(end), 'status') && ~isempty(latest.feeds(end).status)
+        try
+            latestStatus = jsondecode(latest.feeds(end).status);
+        catch
+            latestStatus = struct();
+        end
+        if isstruct(latestStatus) && isfield(latestStatus, 'atmo') && latestStatus.atmo == 1 ...
+                && isfield(latestStatus, 'fs') && isfield(latestStatus, 'fe') ...
+                && isnumeric(latestStatus.fs) && isscalar(latestStatus.fs) && isfinite(latestStatus.fs) ...
+                && isnumeric(latestStatus.fe) && isscalar(latestStatus.fe) && isfinite(latestStatus.fe) ...
+                && latestStatus.fe >= latestStatus.fs
+            startHint = datetime(latestStatus.fs, 'ConvertFrom', 'posixtime', 'TimeZone', 'UTC');
+            endHint = datetime(latestStatus.fe + 1, 'ConvertFrom', 'posixtime', 'TimeZone', 'UTC');
+            startHint.Format = 'yyyy-MM-dd HH:mm:ss';
+            endHint.Format = 'yyyy-MM-dd HH:mm:ss';
+            flightStartUTC = char(startHint);
+            flightEndUTC = char(endHint);
+        end
+    end
+end
+if ~exist('flightStartUTC', 'var') || ~exist('flightEndUTC', 'var')
+    error('No recovered flight window found. Upload a flight or set bounds from matlab_flight_window.txt.');
 end
 startUTC = datetime(flightStartUTC, 'InputFormat', 'yyyy-MM-dd HH:mm:ss', 'TimeZone', 'UTC');
 endUTC = datetime(flightEndUTC, 'InputFormat', 'yyyy-MM-dd HH:mm:ss', 'TimeZone', 'UTC');

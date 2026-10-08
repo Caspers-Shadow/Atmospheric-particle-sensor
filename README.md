@@ -169,6 +169,7 @@ such a flight, or analyse the local CSV directly.
 ThingSpeak fields remain: temperature, humidity, pressure, PM1.0, PM2.5, PM10,
 oxidising index and reducing index. The JSON `status` entry also stores light,
 the three raw gas resistances, NH3 index and the original microsecond timestamp.
+Recovery adds `fs`/`fe` UTC epoch seconds identifying the full source flight.
 Both live uploads and recovery use this format; `analyse.py` expands it when
 present. Invalid/sentinel readings remain unavailable in analysis. Cloud entry
 time is UTC to the second during recovery; status preserves the precise source
@@ -179,17 +180,27 @@ between writes, including the first write. All original acquisition dates are
 preserved: uploads do not relabel samples as the collection time. The channel
 needs sufficient message quota. These rules follow the
 [ThingSpeak bulk API](https://www.mathworks.com/help/thingspeak/bulkwritejsondata.html).
-The code is tested against a simulated server; the first real upload remains
-a HIL step, described in `HIL_TESTING.md`.
+The real channel accepted and returned both Pi captures (30 readings total)
+on 8 October 2026. All 14 columns and precise timestamps matched;
+repeat recovery posted no duplicates. The upload ran on the development
+computer using the Pi CSV. Pi-side replay and larger live flights still need
+testing, described in `HIL_TESTING.md`.
+Recovery reads use at most 100 results per request, splitting longer windows,
+to avoid ThingSpeak's five-minute JSON cache during immediate verification.
+See [API caching](https://www.mathworks.com/help/thingspeak/channel-control.html).
 
 ### MATLAB after recovery
 
 `MATLAB_Visualization.m` replaces the old plaintext file named
 `MATLAB Visualization.mat`. Copy its source into the ThingSpeak MATLAB
 Visualization app, or run it in desktop MATLAB with ThingSpeak support.
-Put the three lines from `matlab_flight_window.txt` above the script, and set
-`readAPIKey` privately in that app/workspace. Desktop MATLAB can instead use
-the `THINGSPEAK_READ_API_KEY` environment variable. Keep keys out of Git.
+Set `readAPIKey` privately in that app/workspace. With current recovery uploads,
+the dashboard automatically selects the complete flight identified by the
+latest inserted entry ID, even when recovering a flight with older acquisition
+dates. To select an older flight, put the three lines from
+`matlab_flight_window.txt` above the script and use `autoFlightWindow = false`.
+Desktop MATLAB can instead use the `THINGSPEAK_READ_API_KEY` environment
+variable. Keep keys out of Git.
 
 The dashboard reads all eight fields together over the explicit UTC flight
 window, splits saturated API responses, sorts by measurement time and displays
@@ -197,8 +208,14 @@ SAST. The old latest-100-point view would cover only about 33 minutes at this
 sampling rate and would not select a recovered flight by date. The updated
 view retains eight plots; the five extra measurements are available in the
 Python analysis and the source snapshot. MATLAB R2025a passed local dashboard
-checks with simulated reads (the Pi fixture, 8,005 points and missing values).
-The actual ThingSpeak visualization still needs an operator check. See
+checks with simulated reads (the Pi fixture, automatic window selection,
+8,005 points and missing values).
+The saved ThingSpeak visualization `Plots of tests` was updated and ran against
+both real captures, showing all 15 points per flight in SAST. After future
+recovery uploads, open the visualization editor and click **Save and Run**;
+flight selection follows the new entry automatically when the script runs.
+Automatic five-minute refreshing requires a paid ThingSpeak license.
+See [the visualization app](https://www.mathworks.com/help/thingspeak/matlab-visualizations-app.html) and
 [the MATLAB read API](https://www.mathworks.com/help/thingspeak/thingspeakread.html).
 
 ## Analysis

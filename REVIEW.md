@@ -26,8 +26,10 @@ console output can be committed under `hil-results/`.
 
 ## Verification
 
-37 simulated regression tests passed on Windows, Python 3.12.14 and pandas
-3.0.1, with requests 2.34.2. No live channel was updated. The default Windows
+39 simulated regression tests passed on Windows, Python 3.12.14 and pandas
+3.0.1, with requests 2.34.2. The initial tests made no live channel writes; the
+authorised live recovery check below subsequently uploaded the Pi fixture.
+The default Windows
 sandbox denied temporary test-file writes; tests were rerun with approved
 temporary-folder access.
 
@@ -77,7 +79,7 @@ with eight separate reads. The additional five measurements were also absent
 from the cloud schema. Those gaps are now addressed by:
 
 - `upload_flight.sh` / `upload_flight.py`: offline preview, source snapshot,
-  historical bulk replay, conservative timestamp validation, restart by
+  historical bulk replay, uncached read requests, conservative timestamp validation, restart by
   reading existing entries, conflict checks and complete read-back verification.
 - Shared eight-field mapping plus versioned JSON status containing light,
   raw gas resistances, NH3 index and precise source time. `analyse.py` restores
@@ -88,24 +90,57 @@ from the cloud schema. Those gaps are now addressed by:
   file and removes its embedded Read API key from current source.
 
 A read-only live check confirmed channel `3429238` has the expected eight field
-names and is accessible with the existing Read key. No live data was uploaded.
-Seventeen new automated tests exercise the actual Pi CSV through simulated cloud
+names and is accessible with the configured Read key.
+Nineteen new automated tests exercise the actual Pi CSV through simulated cloud
 storage and analysis, all 14 columns including exact microsecond timestamps,
 1,001-sample batching, repeat recovery, ambiguous timeouts, partial acceptance,
 conflicts, read failures, missing metadata and capped reads. They block external
-socket connections. All 37 tests pass. The recovery client's read-only UTC range
+socket connections. All 39 tests pass. The recovery client's read-only UTC range
 requests were also checked against the live channel (four July entries and an
 empty range for the selected Pi fixture). The shell preview completed with
 15 rows on Windows Bash using a local adapter for the missing `tee` utility.
 MATLAB R2025a executed the production dashboard against a local channel-reader
 stub: all 15 Pi fixture points were aligned, an 8,005-point flight was retrieved
-by split windows without duplicate boundaries, and unavailable values became
-plot gaps. No requests were made by those MATLAB tests. The saved cloud
-visualization and MATLAB's real channel reader still need a HIL check.
+by split windows without duplicate boundaries, unavailable values became
+plot gaps, and metadata automatically selected the newest recovered flight.
+No requests were made by those local MATLAB tests. The separate live
+visualization check below exercised MATLAB's real channel reader.
 
-Real recovery, repeat uploads and the MATLAB display remain HIL checks. Code
-updates in Git do not replace the saved script in the ThingSpeak visualization
-app: that source must also be updated. The local CSV remains the primary record;
+### Authorised live recovery check on 8 October 2026
+
+Both 15-reading Pi captures were uploaded to channel `3429238` with the supplied
+channel keys (30 readings total). All rows were read back and every one of the 14 source columns,
+including the microsecond UTC timestamps restored from status, matched local
+analysis. `analyse.py` completed for both captures with 15 rows and a gas report
+each. Repeating the second capture found all 15 already present and posted
+zero write batches. Keys are absent
+from the committed code, exports and reports. Evidence is under
+`hil-results/thingspeak-recovery-20261008/`.
+
+Replay was performed on the development computer using the Pi capture; this
+does not establish Pi-side replay, larger live batches or interrupted live
+upload behaviour. The first upload predates optional `fs`/`fe` window hints,
+so its dashboard uses the known fixture window as a fallback. Later recovery
+uploads include the full flight bounds for automatic dashboard selection.
+
+The saved private cloud MATLAB visualization `Plots of tests` was updated,
+saved and run. Both captures rendered all 15 readings across eight plots in
+SAST. Recovering the earlier capture after the later one exposed a selection
+bug: `results=1` chooses the newest acquisition time, not the newest inserted
+entry. The dashboard now reads `channel.last_entry_id` followed by that specific
+entry's status, successfully selecting 11:46:09–11:50:49 automatically.
+The screenshot and read-back receipts are committed with the reports.
+
+Immediate recovery verification now requests at most 100 results per JSON
+read and splits saturated ranges. Larger requests are cached for five minutes,
+which could otherwise make a resumed or post-write check use stale rows.
+The 1,001-row test exercises complete recovery using these uncached requests.
+[ThingSpeak API caching](https://www.mathworks.com/help/thingspeak/channel-control.html),
+[reading a specific entry](https://www.mathworks.com/help/thingspeak/readspecificentryid.html).
+
+After future recovery uploads, run the saved visualization using **Save and
+Run**; automatic image refresh is a paid-license feature. Code updates in Git
+do not replace the cloud source. The local CSV remains the primary record;
 old channel entries without status cannot be backfilled in place with the five
 extra measurements, and startup outliers still require investigation.
 

@@ -202,12 +202,18 @@ should be posted. For a longer representative flight, disconnect during upload
 then reconnect and rerun. It must resume without duplicates or missing rows.
 Keep the original CSV regardless of the result.
 
-Copy `upload/matlab_flight_window.txt` above the source of
-`MATLAB_Visualization.m` in your MATLAB Visualization app. Set `readAPIKey`
-privately there. Confirm the dashboard says 15 readings, shows the complete
-SAST flight range (11:53:45–11:58:25 for this fixture), and all eight curves
-align. Uploading data does not update a previously saved cloud MATLAB script;
-replace that script with the new source too.
+The saved `Plots of tests` visualization on channel `3429238` has been updated
+and verified against both Pi captures. After recovery, open its editor and
+click **Save and Run**. New recovery entries identify their complete flight
+automatically by the latest inserted entry ID. Confirm 15 readings, the full
+SAST flight range and eight aligned curves. Merely opening the image does not
+rerun the saved script on a free account.
+
+To display the second fixture, which was uploaded before flight-window hints
+were added, copy `upload/matlab_flight_window.txt` above the source of
+`MATLAB_Visualization.m`, set `autoFlightWindow = false`, and supply `readAPIKey`
+privately. Its SAST range is 11:53:45–11:58:25. A new visualization also needs
+this repository source and its channel's private Read key.
 
 Send back the recovery folder's `report.txt`, plus the MATLAB observation. No
 keys are included in the generated files. Reports can be committed under
@@ -224,8 +230,8 @@ one 960-entry batch and, if relevant, the 8,000-row read limit.
 | Offline reboot + correct clock | Pending | |
 | Offline analysis | Pi run pending | Uploaded CSV analysed locally without network access |
 | Missing PMS5003 (optional) | Pending | |
-| Full flight recovery + repeat without duplicates | Pending | Simulated replay and full measurement round-trip pass; no live upload yet |
-| MATLAB full-flight display | Cloud check pending | Local MATLAB R2025a checks pass with simulated channel reads; update the app source and confirm visually |
+| Full flight recovery + repeat without duplicates | PASS for two 15-row captures | Real channel, all 14 columns matched; repeat of second capture posted nothing; run on development computer with Pi CSVs |
+| MATLAB full-flight display | PASS on live cloud app | Both 15-row captures rendered; automatic selection picked the older capture uploaded later, with correct SAST dates |
 
 Evidence is in commit `a8c73ba`, under
 `hil-results/offline-20261008-114552-kSJTBP/` and
