@@ -1,7 +1,8 @@
 # Pi hardware-in-the-loop tests
 
 Run these from a keyboard and screen connected to the Pi. SSH is unnecessary.
-Record each result below; all physical tests are **pending** until performed.
+The two explicit offline captures in `hil-results/` passed on 8 October 2026.
+The result table below distinguishes completed checks from remaining tests.
 
 ## Get the updated code onto the Pi
 
@@ -171,12 +172,23 @@ hardware dependency to address separately.
 
 | Test | Result | Notes |
 | --- | --- | --- |
-| OS / Python / clock recorded | Pending | |
-| Explicit offline capture + LCD | Pending | |
+| OS / Python / clock recorded | Recorded | Debian 13 (Trixie), Python 3.13.5, timestamp offset +02:00 |
+| Explicit offline capture + LCD | PASS | Two five-minute runs, 15 rows each, max gap 20.02s, no unavailable values; LCD confirmed by operator |
 | Unexpected outage + reconnect | Pending | |
 | Offline reboot + correct clock | Pending | |
-| Offline analysis | Pending | |
+| Offline analysis | Pi run pending | Uploaded CSV analysed locally without network access |
 | Missing PMS5003 (optional) | Pending | |
+
+Evidence is in commit `a8c73ba`, under
+`hil-results/offline-20261008-114552-kSJTBP/` and
+`hil-results/offline-20261008-115334-YqyObx/`. Both runs used acquisition code
+from `3e9a0a2`. Network disconnection was confirmed by the operator.
+
+Both first samples have the same outlying temperature/humidity/pressure values
+(23.61 °C / 81.52% / 681.62 hPa), followed by readings near 871 hPa and much lower
+humidity. The cause is unconfirmed; flag startup samples before interpreting
+statistics. A capture `PASS` checks recording continuity, availability and the
+operator's LCD observation, not calibration accuracy.
 
 Send back the checker output, whether the LCD remained responsive, and the
 last 20–40 relevant log lines. Keep the Write API key private. Preserve the

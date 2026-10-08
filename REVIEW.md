@@ -20,9 +20,9 @@ Branch: `codex/offline-reliability-review`, based on local `dev` at `a3c0614`.
 | BME280 package and LCD API mismatch | Fresh installs may fail | `pimoroni-bme280`, lowercase `st7735`, current GPIO pin names |
 | Every failure immediately retries at LCD cadence | Persistent errors can flood logs | Schedule the next acquisition before reading; disable LCD after a refresh failure; rotating logs |
 
-Original experiment files were preserved. `.gitignore` prevents new runtime
-data, logs, environment files and editor lock files being added accidentally;
-it does not untrack historical files.
+Original experiment files were preserved. `.gitignore` excludes default runtime
+data, raw logs, environment files and editor lock files. HIL reports, CSVs and
+console output can be committed under `hil-results/`.
 
 ## Verification
 
@@ -36,10 +36,38 @@ rows. A selected July 16 SAST experiment window produced 96 rows. Corrected
 humidity has mean 14.498% and maximum 81.52%. The raw source CSV is unchanged.
 Existing historical gas scales differ from the current normalised indices.
 
-Pi hardware validation is pending. The tests simulate sensor objects, UART
-timeouts, LCD calls and network failures; they cannot establish GPIO/UART
-compatibility, power stability, physical sensor accuracy or actual recovery
-when the Pi's internet connection is restored. See `HIL_TESTING.md`.
+### Pi HIL results received in commit `a8c73ba`
+
+Two five-minute runs on 8 October 2026 passed explicit offline acquisition on
+the Pi, using Debian 13 (Trixie) and Python 3.13.5 in the Pimoroni environment.
+Both ran acquisition code from commit `3e9a0a2`.
+
+| Capture (SAST) | Rows saved | Largest sample gap | Unavailable values | LCD navigation |
+| --- | --- | --- | --- | --- |
+| 11:46:09–11:50:49 | 15 | 20.02 seconds | None | Operator confirmed PASS |
+| 11:53:45–11:58:25 | 15 | 20.02 seconds | None | Operator confirmed PASS |
+
+The operator confirmed the network was disconnected; the script does not
+independently verify network interfaces. Both logs explicitly show cloud
+uploads disabled, clean shutdown and 15 saved readings. Independent checks of
+the uploaded CSVs also passed. The second uploaded capture was analysed locally
+without network access, producing cleaned data and a gas report.
+
+These runs establish local recording and observed LCD navigation in explicit
+offline mode on this Pi. Upload-enabled network failure/recovery, offline cold
+boot clock retention, Pi-side offline analysis and deliberately missing-sensor
+behaviour remain untested. Measurement accuracy and extended power stability
+are not established by these short runs.
+
+**Startup data quality needs follow-up.** Both first rows contain the identical
+BME280 values 23.61 °C, 81.52% humidity and 681.62 hPa. Later rows have humidity
+20.63–25.59% and pressure 871.17–871.33 hPa. The second run also starts with large
+gas resistance spikes. These are observable startup outliers; their cause has
+not been established. Preserve the raw records, investigate initial sensor
+readiness and flag initial/warm-up samples before using them for statistics.
+The capture checker tests continuity and availability, not sensor accuracy.
+
+See `HIL_TESTING.md` and the committed `hil-results/` reports for evidence.
 
 ## Recommended next changes
 
