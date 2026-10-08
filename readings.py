@@ -41,6 +41,8 @@ from datetime import datetime, timezone
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
 
+from thingspeak_schema import FIELD_MAP, make_update
+
 # ---------------------------------------------------------------------------
 # Hardware library imports
 #
@@ -474,59 +476,11 @@ class ThingSpeakUploader:
             logger.info("Cloud uploads disabled (%s); local logging continues",
                         "offline mode" if offline else "no API key configured")
 
-    @staticmethod
-    def _clean_field(value):
-        """
-        ThingSpeak's /update endpoint can reject the *entire* request with a
-        400 if any field value is an empty string, None, or NaN. Omit the
-        field entirely in that case rather than sending a bad value - a
-        missing field is handled gracefully by ThingSpeak, but a malformed
-        one is not.
-        """
-        if value is None or value == "":
-            return None
-        try:
-            f = float(value)
-            if not math.isfinite(f):
-                return None
-        except (TypeError, ValueError):
-            return None
-        return value
-
     def upload(self, reading: SensorReading):
         if not self.enabled or time.monotonic() < self._next_attempt:
             return False
-        raw_payload = {
-            "field1": reading.temperature_c,
-            "field2": reading.humidity_pct,
-            "field3": reading.pressure_hpa,
-            "field4": reading.pm1_0,
-            "field5": reading.pm2_5,
-            "field6": reading.pm10,
-
-            # ThingSpeak Free only supports 8 fields
-            "field7": reading.oxidising_index,   # NO2-like index
-            "field8": reading.reducing_index,    # CO-like index
-        }
-
-        payload = {"api_key": self.api_key, "created_at": reading.timestamp_utc}
-
-        dropped = []
-
-        for key, value in raw_payload.items():
-
-            cleaned = self._clean_field(value)
-            # A failed PM/gas read is not a negative concentration/index.
-            if cleaned is not None and key in (
-                    "field4", "field5", "field6", "field7", "field8"):
-                if float(cleaned) < 0:
-                    cleaned = None
-
-            if cleaned is None:
-                dropped.append(key)
-            else:
-                payload[key] = cleaned
-
+        payload = {"api_key": self.api_key, **make_update(reading.as_csv_row())}
+        dropped = [field for field in FIELD_MAP if field not in payload]
         if dropped:
             logger.warning(
                 "Omitting invalid fields from upload: %s",

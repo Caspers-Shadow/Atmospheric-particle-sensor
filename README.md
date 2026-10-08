@@ -13,6 +13,10 @@ once the dependencies and Pi interfaces are configured.
 | `analyse.py` | Offline cleaning, statistics, gas trends and experiment extraction |
 | `check_run.py` | Check a HIL capture using only the Python standard library |
 | `run_offline_test.sh` | Five-minute offline HIL capture, checker and saved report |
+| `upload_flight.sh` | Recovery preview or verified cloud upload, followed by analysis |
+| `upload_flight.py` | Historical bulk replay with read-back verification and restart support |
+| `thingspeak_schema.py` | Shared field mapping and extra-measurement status format |
+| `MATLAB_Visualization.m` | Full-flight, aligned eight-field ThingSpeak dashboard |
 | `requirements.txt` | Pi hardware, networking and analysis dependencies |
 | `requirements-analysis.txt` | Analysis dependencies for a computer without hardware |
 | `requirements-dev.txt` | Dependencies for the simulated regression tests |
@@ -90,8 +94,8 @@ python3 readings.py
 ```
 
 Without an API key, uploads are disabled and local acquisition continues.
-The old source contained a hardcoded key: rotate that key in ThingSpeak if it
-was real, because removing it from the latest source does not remove history.
+The old sources contained Write and Read keys: regenerate exposed keys in
+ThingSpeak, because removing them from current source does not remove history.
 
 Runtime behaviour:
 
@@ -105,7 +109,7 @@ Runtime behaviour:
   start acquisition. Upload requests use POST and carry the original sample
   timestamp, following [ThingSpeak's write API](https://www.mathworks.com/help/thingspeak/writedata.html).
 - The upload queue retains only the latest waiting sample. **Outage history
-  stays in the local CSV; it is not automatically replayed to ThingSpeak.**
+  stays in the local CSV; run the recovery script after collection to replay it.**
 - PM and gas failures use `-1` for unavailable values. Analysis excludes these
   values from statistics and trends; uploads omit unavailable fields.
 - Logs rotate at 2 MB with three backups. CSV data is not rotated or deleted.
@@ -114,6 +118,88 @@ Use `--no-lcd` for acquisition without the display. Stop with `Ctrl+C`, or use
 `--duration` for an automatic stop. Cadence and duration use a monotonic timer,
 so a system-clock correction cannot reset the acquisition schedule. UTC sample
 timestamps still depend on the Pi's clock being correct.
+
+## Launch, collect, upload and analyse
+
+Use a separate directory for each flight, and check the UTC clock before launch:
+
+```bash
+python3 readings.py --offline --data-dir data/flight-01
+```
+
+After collecting the Pi, stop acquisition, keep a backup of `readings.csv`, and
+reconnect to the internet. Recovery can run on the Pi or another computer with
+the repo, Python, requests and pandas; no sensors are required for replay.
+
+First check the full saved flight and the analysis path without network access:
+
+```bash
+bash upload_flight.sh --dry-run data/flight-01/readings.csv
+```
+
+Then send and verify it:
+
+```bash
+bash upload_flight.sh --upload data/flight-01/readings.csv
+```
+
+The script selects the same Python environments as the offline test runner. It
+asks for the channel ID (default `3429238`), then the current Write and Read API
+keys with hidden input. Keys are not saved in the report. It prepares an
+immutable source snapshot before uploading, checks the channel's field mapping,
+uploads historical batches, reads every entry back, then runs `analyse.py` on
+the downloaded data. A `PASS` requires all rows and values to match, including
+the extra measurements. Stop other writers to that channel during recovery.
+
+Results are under the printed `hil-results/replay-...` folder. Important files:
+
+- `report.txt` and `upload/report.json`: outcome, counts, source hash and UTC range.
+- `upload/source_readings.csv`: unchanged source snapshot; keep it even after upload.
+- `upload/thingspeak_verified.csv`: downloaded, matched entries for the Python pipeline.
+- `analysis/`: cleaned data and gas report from the verified cloud export.
+- `upload/matlab_flight_window.txt`: exact UTC range for the MATLAB dashboard.
+
+Rerun the upload command after an interrupted connection: matching entries are
+skipped, missing entries are sent, and conflicting entries stop the upload.
+The script never clears or overwrites the channel. Existing entries from the
+older live uploader lack extra-measurement status, so they cannot be claimed
+as a complete match; use a separate channel with the same field names for
+such a flight, or analyse the local CSV directly.
+
+ThingSpeak fields remain: temperature, humidity, pressure, PM1.0, PM2.5, PM10,
+oxidising index and reducing index. The JSON `status` entry also stores light,
+the three raw gas resistances, NH3 index and the original microsecond timestamp.
+Both live uploads and recovery use this format; `analyse.py` expands it when
+present. Invalid/sentinel readings remain unavailable in analysis. Cloud entry
+time is UTC to the second during recovery; status preserves the precise source
+time. Input timestamps must increase with at most one reading per second.
+
+Recovery uses at most 960 entries per request and waits at least 16 seconds
+between writes, including the first write. All original acquisition dates are
+preserved: uploads do not relabel samples as the collection time. The channel
+needs sufficient message quota. These rules follow the
+[ThingSpeak bulk API](https://www.mathworks.com/help/thingspeak/bulkwritejsondata.html).
+The code is tested against a simulated server; the first real upload remains
+a HIL step, described in `HIL_TESTING.md`.
+
+### MATLAB after recovery
+
+`MATLAB_Visualization.m` replaces the old plaintext file named
+`MATLAB Visualization.mat`. Copy its source into the ThingSpeak MATLAB
+Visualization app, or run it in desktop MATLAB with ThingSpeak support.
+Put the three lines from `matlab_flight_window.txt` above the script, and set
+`readAPIKey` privately in that app/workspace. Desktop MATLAB can instead use
+the `THINGSPEAK_READ_API_KEY` environment variable. Keep keys out of Git.
+
+The dashboard reads all eight fields together over the explicit UTC flight
+window, splits saturated API responses, sorts by measurement time and displays
+SAST. The old latest-100-point view would cover only about 33 minutes at this
+sampling rate and would not select a recovered flight by date. The updated
+view retains eight plots; the five extra measurements are available in the
+Python analysis and the source snapshot. MATLAB R2025a passed local dashboard
+checks with simulated reads (the Pi fixture, 8,005 points and missing values).
+The actual ThingSpeak visualization still needs an operator check. See
+[the MATLAB read API](https://www.mathworks.com/help/thingspeak/thingspeakread.html).
 
 ## Analysis
 
@@ -128,6 +214,13 @@ Analyse a normal ThingSpeak export:
 ```bash
 python3 analyse.py --input channel-export.csv --output-dir data/channel-analysis
 ```
+
+For a full recovery export, use the script's `thingspeak_verified.csv`. When
+downloading manually through the feed API, include `status=true`, explicit UTC
+start/end dates and all fields. The API returns at most 8,000 rows per request;
+split longer windows, as the recovery script does. Without status, only the
+original eight measurements can be recovered. See
+[ThingSpeak read parameters](https://www.mathworks.com/help/thingspeak/readdata.html).
 
 Optional experiment bounds are inclusive and interpreted in SAST when no
 offset is provided. Supply both bounds; without them there are no prompts and

@@ -26,7 +26,7 @@ console output can be committed under `hil-results/`.
 
 ## Verification
 
-20 simulated regression tests passed on Windows, Python 3.12.14 and pandas
+37 simulated regression tests passed on Windows, Python 3.12.14 and pandas
 3.0.1, with requests 2.34.2. No live channel was updated. The default Windows
 sandbox denied temporary test-file writes; tests were rerun with approved
 temporary-folder access.
@@ -69,16 +69,57 @@ The capture checker tests continuity and availability, not sensor accuracy.
 
 See `HIL_TESTING.md` and the committed `hil-results/` reports for evidence.
 
+### Post-recovery workflow review
+
+The former workflow would not send a full offline flight: the live queue only
+retains the newest sample, and the MATLAB source requested only 100 points
+with eight separate reads. The additional five measurements were also absent
+from the cloud schema. Those gaps are now addressed by:
+
+- `upload_flight.sh` / `upload_flight.py`: offline preview, source snapshot,
+  historical bulk replay, conservative timestamp validation, restart by
+  reading existing entries, conflict checks and complete read-back verification.
+- Shared eight-field mapping plus versioned JSON status containing light,
+  raw gas resistances, NH3 index and precise source time. `analyse.py` restores
+  these columns without changing the established field numbering.
+- `MATLAB_Visualization.m`: an explicit UTC flight window, aligned fields in
+  one read per window, split reads at the 8,000-point cap, sorted acquisition
+  times and SAST display. This replaces the incorrectly named plaintext `.mat`
+  file and removes its embedded Read API key from current source.
+
+A read-only live check confirmed channel `3429238` has the expected eight field
+names and is accessible with the existing Read key. No live data was uploaded.
+Seventeen new automated tests exercise the actual Pi CSV through simulated cloud
+storage and analysis, all 14 columns including exact microsecond timestamps,
+1,001-sample batching, repeat recovery, ambiguous timeouts, partial acceptance,
+conflicts, read failures, missing metadata and capped reads. They block external
+socket connections. All 37 tests pass. The recovery client's read-only UTC range
+requests were also checked against the live channel (four July entries and an
+empty range for the selected Pi fixture). The shell preview completed with
+15 rows on Windows Bash using a local adapter for the missing `tee` utility.
+MATLAB R2025a executed the production dashboard against a local channel-reader
+stub: all 15 Pi fixture points were aligned, an 8,005-point flight was retrieved
+by split windows without duplicate boundaries, and unavailable values became
+plot gaps. No requests were made by those MATLAB tests. The saved cloud
+visualization and MATLAB's real channel reader still need a HIL check.
+
+Real recovery, repeat uploads and the MATLAB display remain HIL checks. Code
+updates in Git do not replace the saved script in the ThingSpeak visualization
+app: that source must also be updated. The local CSV remains the primary record;
+old channel entries without status cannot be backfilled in place with the five
+extra measurements, and startup outliers still require investigation.
+
 ## Recommended next changes
 
-1. **Rotate the exposed ThingSpeak key now.** The previous key remains in Git
-   history. Use a new environment-provided key for the HIL recovery test.
-2. **Add a persistent upload outbox if cloud history matters.** Current offline
-   data is durable locally, but missed samples are not replayed automatically.
-   Add a disk-backed queue, acknowledgement tracking and a tested bulk replay
-   path that preserves timestamps. ThingSpeak supports original timestamps;
-   they must be unique within the channel.
-   [Write API documentation](https://www.mathworks.com/help/thingspeak/writedata.html).
+1. **Regenerate exposed ThingSpeak keys.** Previous Write and Read keys remain
+   in Git history. Supply the current channel keys privately for recovery.
+2. **Validate recovery before launch.** The stopped-flight CSV is now the
+   durable source for manual replay, with the channel used to verify restart
+   progress. Run HIL test 7, repeat it, and confirm the full-flight MATLAB view.
+   An automatic disk-backed outbox would only be needed if uploads must resume
+   unattended during acquisition, which is beyond the collect-then-upload
+   workflow. Preserve the source CSV even after successful verification.
+   [Bulk API documentation](https://www.mathworks.com/help/thingspeak/bulkwritejsondata.html).
 3. **Add boot/restart supervision after HIL passes.** A service should start
    without waiting for internet, run as the normal sensor user with explicit
    working/output paths, restart after genuine process failure, and expose a

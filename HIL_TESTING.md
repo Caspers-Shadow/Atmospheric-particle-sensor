@@ -9,7 +9,8 @@ The result table below distinguishes completed checks from remaining tests.
 The source kit `data/offline-hil-kit.zip` can be copied to a USB stick and
 extracted into a new folder on the Pi. It contains source, requirements, tests
 and instructions; it does not contain API keys, historical experiment files,
-or installed dependencies. An existing configured Python environment can be
+or installed dependencies. It includes the small offline CSV fixture needed
+by the replay tests. An existing configured Python environment can be
 used from this new folder.
 
 The changes are available on the GitHub branch `codex/offline-reliability-review`.
@@ -168,6 +169,51 @@ without `--require-sensors` for this deliberate-failure test. If the vendor
 driver refuses initialisation, record that startup failure; it remains a
 hardware dependency to address separately.
 
+## 7. Flight recovery through ThingSpeak and both analysis paths
+
+Update the branch while online. Stop acquisition and use an existing small
+offline capture first, for example:
+
+```bash
+bash upload_flight.sh --dry-run hil-results/offline-20261008-115334-YqyObx/readings.csv
+```
+
+Expected: 15 readings, the original 8 October UTC range, light/raw gas/NH3
+columns in `preview-analysis/cleaned_thingspeak_data.csv`, and `PREVIEW PASS`.
+This mode makes no network requests. The source capture remains unchanged.
+
+While connected, use the same CSV for the real recovery check:
+
+```bash
+bash upload_flight.sh --upload hil-results/offline-20261008-115334-YqyObx/readings.csv
+```
+
+Select channel `3429238`, or a separate test channel with all eight fields
+enabled and named as in the README mapping. Supply its current Write and Read
+keys when prompted. Stop other channel writers for this test.
+
+Expected: all 15 historical entries are downloaded and verified, analysis
+completes, and `report.txt` ends with `OVERALL: PASS`. A successful HTTP response
+without all measurements in the read-back is a failure. The original startup
+outliers are preserved; verification does not certify their accuracy.
+
+Repeat the same command: all 15 should be already present and no new entries
+should be posted. For a longer representative flight, disconnect during upload
+then reconnect and rerun. It must resume without duplicates or missing rows.
+Keep the original CSV regardless of the result.
+
+Copy `upload/matlab_flight_window.txt` above the source of
+`MATLAB_Visualization.m` in your MATLAB Visualization app. Set `readAPIKey`
+privately there. Confirm the dashboard says 15 readings, shows the complete
+SAST flight range (11:53:45–11:58:25 for this fixture), and all eight curves
+align. Uploading data does not update a previously saved cloud MATLAB script;
+replace that script with the new source too.
+
+Send back the recovery folder's `report.txt`, plus the MATLAB observation. No
+keys are included in the generated files. Reports can be committed under
+`hil-results/` as before. A large flight should also confirm operation beyond
+one 960-entry batch and, if relevant, the 8,000-row read limit.
+
 ## Result record
 
 | Test | Result | Notes |
@@ -178,6 +224,8 @@ hardware dependency to address separately.
 | Offline reboot + correct clock | Pending | |
 | Offline analysis | Pi run pending | Uploaded CSV analysed locally without network access |
 | Missing PMS5003 (optional) | Pending | |
+| Full flight recovery + repeat without duplicates | Pending | Simulated replay and full measurement round-trip pass; no live upload yet |
+| MATLAB full-flight display | Cloud check pending | Local MATLAB R2025a checks pass with simulated channel reads; update the app source and confirm visually |
 
 Evidence is in commit `a8c73ba`, under
 `hil-results/offline-20261008-114552-kSJTBP/` and

@@ -12,22 +12,15 @@ from zoneinfo import ZoneInfo
 
 import pandas as pd
 
+from thingspeak_schema import FIELD_MAP, LOCAL_HEADER, decode_status
+
 JOHANNESBURG_TZ = ZoneInfo("Africa/Johannesburg")
 DATA_DIR = Path(__file__).resolve().parent / "data"
 CLEANED_OUTPUT = "cleaned_thingspeak_data.csv"
 EXPERIMENT_OUTPUT = "experiment.csv"
 GAS_REPORT_OUTPUT = "gas_report.csv"
 
-THINGSPEAK_FIELD_MAP = {
-    "field1": "temperature_c",
-    "field2": "humidity_pct",
-    "field3": "pressure_hpa",
-    "field4": "pm1_0",
-    "field5": "pm2_5",
-    "field6": "pm10",
-    "field7": "oxidising_index",
-    "field8": "reducing_index",
-}
+THINGSPEAK_FIELD_MAP = FIELD_MAP
 EXPORT_COLUMN_MAP = {
     **THINGSPEAK_FIELD_MAP,
     "created_at": "timestamp_utc",
@@ -48,11 +41,6 @@ GAS_COLUMNS = ["oxidising_index", "reducing_index", "nh3_index", "co_index", "no
 LEGACY_EXPORT_HEADER = [
     "created_at", "entry_id", "temperature", "humidity", "pressure", "pm1",
     "pm2.5", "pm10", "oxidising index", "reducing index", "", "", "", "",
-]
-LOCAL_HEADER = [
-    "timestamp_utc", "temperature_c", "humidity_pct", "pressure_hpa", "light_lux",
-    "pm1_0", "pm2_5", "pm10", "oxidising_raw", "reducing_raw", "nh3_raw",
-    "oxidising_index", "reducing_index", "nh3_index",
 ]
 
 
@@ -102,6 +90,17 @@ def load_dataset(path: str, legacy_mixed=False) -> pd.DataFrame:
     df = df.rename(columns=EXPORT_COLUMN_MAP)
     if df.columns.duplicated().any():
         raise ValueError("Dataset has multiple columns for the same measurement")
+    if "status" in df.columns:
+        # The recovery uploader stores the five measurements that do not fit
+        # ThingSpeak's eight fields, plus the precise source time, in status.
+        for index, row in df.iterrows():
+            channel_time = str(row["timestamp_utc"]).strip()
+            if channel_time.endswith(" UTC"):
+                channel_time = channel_time[:-4] + "+00:00"
+            metadata = decode_status(row["status"], created_at=channel_time)
+            for column, value in metadata.items():
+                if column == "timestamp_utc" or column not in df.columns or pd.isna(df.at[index, column]):
+                    df.at[index, column] = value
     for alias, source in (("co_index", "reducing_index"), ("no2_index", "oxidising_index")):
         if alias not in df.columns and source in df.columns:
             df[alias] = df[source]
