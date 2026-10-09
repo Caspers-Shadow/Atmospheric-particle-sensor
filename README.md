@@ -220,6 +220,21 @@ See [the visualization app](https://www.mathworks.com/help/thingspeak/matlab-vis
 
 ## Analysis
 
+On the Pi, activate the existing Pimoroni virtual environment before installing
+packages or running analysis. Install the analysis dependencies once while online:
+
+```bash
+source ~/.virtualenvs/pimoroni/bin/activate
+python3 -m pip install -r requirements-analysis.txt
+```
+
+In each new terminal, run the `source` command again before analysis. The earlier
+Pi captures used this environment; plain `python3` outside it uses the system
+Python instead. Raspberry Pi OS protects that installation and rejects `pip`
+with `externally-managed-environment`. Use the virtual environment as described
+in the [Raspberry Pi Python instructions](https://www.raspberrypi.com/documentation/computers/os.html#python-on-raspberry-pi).
+On another computer, use its configured virtual environment instead.
+
 For each experiment, run **one command** with the saved CSV and its start date
 and time. This example selects the 9 October experiment from 11:00 SAST through
 the last readable record, and creates an Excel workbook as well as CSV reports:
@@ -234,13 +249,6 @@ sensor measurement. Invalid timestamps and rows with no available measurements
 are excluded. Bounds are inclusive; times without an offset mean SAST. Every
 statistic and gas trend uses the selected experiment only. To stop at a specific
 time, add `--end "2026-10-09 12:00:00"`.
-
-Install the analysis dependencies once, while online, in the Python environment
-you use to run the script:
-
-```bash
-python3 -m pip install -r requirements-analysis.txt
-```
 
 After installation, analysis needs no internet or ThingSpeak keys. Omit
 `--excel` if you only need CSVs. The script prints the new results folder; each
