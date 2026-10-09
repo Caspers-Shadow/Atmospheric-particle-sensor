@@ -236,8 +236,8 @@ one 960-entry batch and, if relevant, the 8,000-row read limit.
 | Offline reboot + correct clock | Pending | |
 | Offline analysis | Pi run pending | Uploaded CSV analysed locally without network access |
 | Missing PMS5003 (optional) | Pending | |
-| Full flight recovery + repeat without duplicates | PASS for two 15-row captures | Real channel, all 14 columns matched; repeat of second capture posted nothing; run on development computer with Pi CSVs |
-| MATLAB full-flight display | PASS on live cloud app | Both 15-row captures rendered; automatic selection picked the older capture uploaded later, with correct SAST dates |
+| Full flight recovery + repeat without duplicates | PASS for two 15-row captures and a 398-row experiment | Real channel, all 14 columns matched; repeat uploads posted nothing; run on development computer with Pi CSVs |
+| MATLAB full-flight display | PASS on live cloud app | Both small captures and the 9 October 11:00–13:12 experiment rendered; automatic selection followed the latest recovered flight |
 
 Evidence is in commit `a8c73ba`, under
 `hil-results/offline-20261008-114552-kSJTBP/` and

@@ -176,6 +176,32 @@ the experiment's actual date/time when selecting a window; use `--end` as well
 if the file includes later experiments. The source snapshot preserves rows
 outside the selected window for later analysis.
 
+### Selected experiment recovery — 9 October 2026
+
+Local analysis does not upload to ThingSpeak. A read-only check confirmed that
+channel `3429238` had no entries for the supplied 9 October experiment. Recovery
+now accepts `--start` and optional `--end` in both the Python client and shell
+helper. Offset-free bounds mean SAST and include precise source timestamps;
+the default end is the last readable record. The full original source snapshot
+is retained, while preparation, uploads, read-back verification, flight-window
+metadata and downloaded analysis cover only the selected readings.
+
+All 48 simulated tests passed. The shell helper's offline preview selected and
+analysed the expected 398 readings using a local Windows adapter for `tee`.
+The real selected experiment was then uploaded to channel `3429238` and every
+entry was read back and matched, including all extra measurements and precise
+timestamps. Repeating the same upload verified 398 existing entries, recovered
+zero new entries and acknowledged zero write batches. The source window is
+11:00:00.366145–13:12:25.742104 SAST on 9 October 2026. The saved cloud MATLAB
+visualization was rerun and displayed all eight curves with the title
+"Atmospheric flight: 398 readings". This recovery ran on the development
+computer using the supplied Pi CSV; Pi-side execution remains an operator check.
+
+The older 132-row Pi recovery receipt records HTTP 400 and does not establish a
+successful upload. Its exact cause was not captured. Current errors identify
+whether the failing request was a GET or POST without printing credentials or
+response bodies. The supplied channel keys worked for the new verified recovery.
+
 ## Recommended next changes
 
 1. **Regenerate exposed ThingSpeak keys.** Previous Write and Read keys remain

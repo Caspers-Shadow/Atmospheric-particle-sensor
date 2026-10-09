@@ -131,6 +131,24 @@ After collecting the Pi, stop acquisition, keep a backup of `readings.csv`, and
 reconnect to the internet. Recovery can run on the Pi or another computer with
 the repo, Python, requests and pandas; no sensors are required for replay.
 
+**Running `analyse.py` creates local results only. It does not upload anything
+to ThingSpeak.** To send an experiment from a CSV containing several sessions,
+activate the Pi environment and supply the same start time to the recovery script:
+
+```bash
+source ~/.virtualenvs/pimoroni/bin/activate
+python3 -m pip install requests
+bash upload_flight.sh --upload data/readings.csv --start "2026-10-09 11:00:00"
+```
+
+Change the CSV path and start time for each experiment. The end defaults to the
+last readable record; add `--end` if there are later experiments in the file.
+Times without offsets mean SAST, and both bounds are inclusive. The preview,
+upload, verification and downloaded analysis all use this selected window.
+The full source snapshot is preserved. For this flight, expect 398 verified
+readings ending at 13:12:25.742104 SAST. Only a verified upload `PASS` confirms
+that the measurements reached the channel.
+
 First check the full saved flight and the analysis path without network access:
 
 ```bash

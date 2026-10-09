@@ -16,6 +16,7 @@ import re
 import time
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
 from thingspeak_schema import (
     EXPORT_HEADER, FIELD_MAP, LOCAL_HEADER, decode_status, finite_number,
@@ -48,7 +49,27 @@ class UploadError(ValueError):
         self.retryable = retryable
 
 
-def load_flight(path, now=None):
+def window_timestamp(value):
+    """Interpret offset-free experiment bounds as SAST, independently of the OS."""
+    try:
+        stamp = datetime.fromisoformat(value.strip().replace("Z", "+00:00"))
+    except (ValueError, AttributeError):
+        raise ValueError("Experiment bounds must be ISO dates/times, for example 2026-10-09 11:00:00") from None
+    if stamp.tzinfo is None:
+        stamp = stamp.replace(tzinfo=ZoneInfo("Africa/Johannesburg"))
+    return stamp.astimezone(timezone.utc)
+
+
+def readable_update(update):
+    if any(field in update for field in FIELD_MAP):
+        return True
+    metadata = json.loads(update["status"])
+    return (metadata["lux"] is not None or
+            any(metadata[key] is not None and metadata[key] > 0 for key in ("ox", "red", "nh3")) or
+            (metadata["nh3i"] is not None and metadata["nh3i"] >= 0))
+
+
+def load_flight(path, now=None, *, start=None, end=None):
     """Read one immutable snapshot and validate the entire file before writing."""
     source = path.read_bytes()
     reader = csv.reader(io.StringIO(source.decode("utf-8-sig"), newline=""))
@@ -76,6 +97,20 @@ def load_flight(path, now=None):
         updates.append(update)
     if not updates:
         raise ValueError("No readings in the input CSV")
+    if end and not start:
+        raise ValueError("--end requires --start")
+    if start:
+        start_time = window_timestamp(start)
+        end_time = window_timestamp(end) if end else None
+        if end_time is not None and start_time > end_time:
+            raise ValueError("Experiment start must be before or equal to end")
+        # Compare the precise source time, not the rounded channel identity.
+        updates = [update for update in updates
+                   if readable_update(update)
+                   and (stamp := utc_timestamp(json.loads(update["status"])["ts"])) >= start_time
+                   and (end_time is None or stamp <= end_time)]
+        if not updates:
+            raise ValueError("No readable readings in the selected experiment window")
     # A recovered entry identifies its complete flight window. The cloud
     # dashboard can follow later flights without someone editing its dates.
     first_second = int(timestamp_key(updates[0]["created_at"]).timestamp())
@@ -169,7 +204,8 @@ class ThingSpeakClient:
         except self.requests.RequestException as error:
             raise UploadError(f"ThingSpeak request failed ({type(error).__name__}); rerun to resume", True) from None
         if not response.ok:
-            raise UploadError(f"ThingSpeak returned HTTP {response.status_code}; check keys, channel and quota",
+            raise UploadError(f"ThingSpeak {method} request returned HTTP {response.status_code}; "
+                              "check keys, channel and request settings",
                               response.status_code == 429 or response.status_code >= 500)
         try:
             return response.json()
@@ -291,18 +327,21 @@ def main(argv=None):
     mode.add_argument("--upload", action="store_true", help="Write to ThingSpeak and verify every entry")
     mode.add_argument("--dry-run", action="store_true", help="Offline preview only (the default)")
     parser.add_argument("--channel-id", type=int, help="Required with --upload")
+    parser.add_argument("--start", help="Inclusive experiment start; times without offsets mean SAST")
+    parser.add_argument("--end", help="Inclusive experiment end; default is the last readable record")
     args = parser.parse_args(argv)
     report_path = None
     report = {"mode": "upload" if args.upload else "dry-run", "result": "INCOMPLETE"}
     try:
-        source, updates = load_flight(args.input)
+        source, updates = load_flight(args.input, start=args.start, end=args.end)
         first = decode_status(updates[0]["status"])["timestamp_utc"]
         last = decode_status(updates[-1]["status"])["timestamp_utc"]
         print(f"Readings: {len(updates)}; UTC range: {first} -> {last}")
         print("Fields 1-8 keep the existing mapping; status carries light, raw gas, NH3 index and precise time.")
         report.update({"source": str(args.input.resolve()), "source_sha256": hashlib.sha256(source).hexdigest(),
                        "rows": len(updates), "start_utc": first, "end_utc": last,
-                       "channel_id": args.channel_id})
+                       "channel_id": args.channel_id,
+                       "requested_start": args.start, "requested_end": args.end})
         if args.upload:
             if not args.channel_id or args.channel_id <= 0:
                 raise ValueError("--upload requires a positive --channel-id")

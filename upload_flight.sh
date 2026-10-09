@@ -7,14 +7,24 @@ set -o pipefail
 project_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)" || exit 1
 cd -- "$project_dir" || exit 1
 mode="${1:---dry-run}"
+usage() { printf 'Usage: bash upload_flight.sh [--dry-run|--upload] [readings.csv] [--start "YYYY-MM-DD HH:MM:SS"] [--end "YYYY-MM-DD HH:MM:SS"]\n' >&2; }
 case "$mode" in
     --upload|--dry-run) ;;
-    *) printf 'Usage: bash upload_flight.sh [--dry-run|--upload] [readings.csv]\n' >&2; exit 1 ;;
+    *) usage; exit 1 ;;
 esac
-if [[ "$#" -gt 2 ]]; then
-    printf 'Too many arguments. Supply the mode and optionally the CSV path.\n' >&2
-    exit 1
-fi
+if [[ "$#" -gt 0 ]]; then shift; fi
+input_csv=""
+if [[ "$#" -gt 0 && "$1" != --* ]]; then input_csv="$1"; shift; fi
+window_args=()
+while [[ "$#" -gt 0 ]]; do
+    case "$1" in
+        --start|--end)
+            if [[ "$#" -lt 2 ]]; then usage; exit 1; fi
+            window_args+=("$1" "$2")
+            shift 2 ;;
+        *) usage; exit 1 ;;
+    esac
+done
 if [[ -n "${ATMO_PYTHON:-}" ]]; then
     python_command="$ATMO_PYTHON"
 elif [[ -n "${VIRTUAL_ENV:-}" && -x "$VIRTUAL_ENV/bin/python" ]]; then
@@ -30,9 +40,7 @@ if ! command -v "$python_command" >/dev/null 2>&1; then
     printf 'Python was not found. Activate your configured environment and rerun.\n' >&2
     exit 1
 fi
-if [[ "$#" -eq 2 ]]; then
-    input_csv="$2"
-else
+if [[ -z "$input_csv" ]]; then
     read -r -p 'Saved flight CSV [data/readings.csv]: ' input_csv || exit 1
     input_csv="${input_csv:-data/readings.csv}"
 fi
@@ -47,7 +55,7 @@ report "Results: $run_dir"
 report 'Stop sensor acquisition before recovery. Check that the following UTC range is the actual flight.'
 
 "$python_command" -u "$project_dir/upload_flight.py" --dry-run --input "$input_csv" \
-    --output-dir "$run_dir/preview" 2>&1 | tee -a "$report_file"
+    "${window_args[@]}" --output-dir "$run_dir/preview" 2>&1 | tee -a "$report_file"
 preview_status=("${PIPESTATUS[@]}")
 if [[ "${preview_status[0]}" -ne 0 || "${preview_status[1]}" -ne 0 ]]; then
     report 'OVERALL: FAIL (CSV preparation). No upload attempted.'
@@ -84,7 +92,7 @@ fi
 export THINGSPEAK_WRITE_API_KEY THINGSPEAK_READ_API_KEY
 report "Uploading to channel $channel_id; matching stored entries will be skipped."
 "$python_command" -u "$project_dir/upload_flight.py" --upload --input "$run_dir/preview/source_readings.csv" \
-    --channel-id "$channel_id" --output-dir "$run_dir/upload" 2>&1 | tee -a "$report_file"
+    "${window_args[@]}" --channel-id "$channel_id" --output-dir "$run_dir/upload" 2>&1 | tee -a "$report_file"
 upload_status=("${PIPESTATUS[@]}")
 unset THINGSPEAK_WRITE_API_KEY THINGSPEAK_READ_API_KEY
 if [[ "${upload_status[0]}" -ne 0 || "${upload_status[1]}" -ne 0 ]]; then

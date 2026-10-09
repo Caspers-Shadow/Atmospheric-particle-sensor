@@ -141,6 +141,49 @@ class FlightReplayTests(unittest.TestCase):
             self.assertEqual(analyse.main(["--input", str(export), "--output-dir", str(self.directory / "analysis")]), 0)
         self.assertTrue((self.directory / "analysis/gas_report.csv").exists())
 
+    def test_experiment_window_uploads_only_selected_readable_rows(self):
+        records = [synthetic_record(stamp) for stamp in [
+            "2026-10-08T09:00:00+00:00", "2026-10-09T08:59:40+00:00",
+            "2026-10-09T09:00:00.366145+00:00", "2026-10-09T11:12:25.742104+00:00",
+        ]]
+        records.append(dict.fromkeys(LOCAL_HEADER, ""))
+        records[-1]["timestamp_utc"] = "2026-10-09T11:13:00+00:00"
+        path = self.fixture(records)
+        before = path.read_bytes()
+        source, updates = upload_flight.load_flight(path, start="2026-10-09 11:00:00")
+        self.assertEqual(source, before)
+        self.assertEqual(len(updates), 2)
+        metadata = json.loads(updates[-1]["status"])
+        self.assertEqual(metadata["ts"], "2026-10-09T11:12:25.742104+00:00")
+        self.assertEqual(metadata["fs"], int(datetime(2026, 10, 9, 9, tzinfo=timezone.utc).timestamp()))
+        self.assertEqual(metadata["fe"], int(datetime(2026, 10, 9, 11, 12, 25, tzinfo=timezone.utc).timestamp()))
+        verified, result = self.run_replay(updates)
+        self.assertEqual(result["verified"], 2)
+        self.assertEqual(len(verified), 2)
+        _, repeated = self.run_replay(updates)
+        self.assertEqual(repeated["recovered"], 0)
+        self.assertEqual(path.read_bytes(), before)
+
+    def test_upload_window_uses_precise_inclusive_bounds_and_rejects_empty_selection(self):
+        path = self.fixture([synthetic_record(stamp) for stamp in [
+            "2026-10-09T09:00:00.366145+00:00", "2026-10-09T09:00:00.742104+00:00",
+        ]])
+        # Whole-second duplicates remain invalid, even when selecting a window.
+        with self.assertRaisesRegex(ValueError, "at most one"):
+            upload_flight.load_flight(path, start="2026-10-09 11:00:00.5")
+        path = self.fixture([synthetic_record(stamp) for stamp in [
+            "2026-10-09T09:00:00.366145+00:00", "2026-10-09T09:00:20.742104+00:00",
+        ]])
+        _, updates = upload_flight.load_flight(path, start="2026-10-09 11:00:00.5",
+                                               end="2026-10-09T09:00:20.742104+00:00")
+        self.assertEqual(len(updates), 1)
+        self.assertEqual(json.loads(updates[0]["status"])["ts"], "2026-10-09T09:00:20.742104+00:00")
+        for bounds in [dict(start="2026-10-10 11:00:00"), dict(start="bad-date"),
+                       dict(end="2026-10-09 11:00:00"),
+                       dict(start="2026-10-09 12:00:00", end="2026-10-09 11:00:00")]:
+            with self.subTest(bounds=bounds), self.assertRaises(ValueError):
+                upload_flight.load_flight(path, **bounds)
+
     def test_more_than_960_samples_batch_and_repeat_without_duplicates(self):
         start = datetime(2026, 10, 1, tzinfo=timezone.utc)
         updates = [make_update(synthetic_record((start + timedelta(seconds=20 * i)).isoformat()))
