@@ -24,7 +24,7 @@ once the dependencies and Pi interfaces are configured.
 | `REVIEW.md` | Fixed problems, verification and recommended next changes |
 
 The committed CSVs and log are historical experiment records. New acquisition
-uses `data/readings.csv`, and analysis outputs go to `data/analysis/`, both
+uses `data/readings.csv`, and each analysis creates a new `data/analysis-.../` folder, both
 ignored by Git. Existing tracked records remain tracked.
 
 ## Pi setup
@@ -220,17 +220,60 @@ See [the visualization app](https://www.mathworks.com/help/thingspeak/matlab-vis
 
 ## Analysis
 
-Analyse a new local capture without internet:
+For each experiment, run **one command** with the saved CSV and its start date
+and time. This example selects the 9 October experiment from 11:00 SAST through
+the last readable record, and creates an Excel workbook as well as CSV reports:
 
 ```bash
-python3 analyse.py --input data/readings.csv
+python3 analyse.py --input data/readings.csv --start "2026-10-09 11:00:00" --excel
 ```
 
-Analyse a normal ThingSpeak export:
+On later flights, change the input path and start date/time. An end time is
+optional: the script finds the latest timestamp with at least one available
+sensor measurement. Invalid timestamps and rows with no available measurements
+are excluded. Bounds are inclusive; times without an offset mean SAST. Every
+statistic and gas trend uses the selected experiment only. To stop at a specific
+time, add `--end "2026-10-09 12:00:00"`.
+
+Install the analysis dependencies once, while online, in the Python environment
+you use to run the script:
 
 ```bash
-python3 analyse.py --input channel-export.csv --output-dir data/channel-analysis
+python3 -m pip install -r requirements-analysis.txt
 ```
+
+After installation, analysis needs no internet or ThingSpeak keys. Omit
+`--excel` if you only need CSVs. The script prints the new results folder; each
+run creates a separate folder and leaves previous results intact.
+
+| Results file | Use |
+| --- | --- |
+| `analysis.xlsx` | Open this for the summary, selected readings and gas trends; created with `--excel` |
+| `experiment.csv` | Selected experiment measurements with precise UTC and SAST timestamps |
+| `summary_statistics.csv` | Count, mean, minimum and maximum for each selected measurement |
+| `gas_report.csv` | Selected relative gas indices and trends |
+| `report.txt` | Readable result, selected time range, statistics and file guide |
+| `report.json` | Selection settings, source/code hashes, software versions and arguments to reproduce the run |
+| `source.csv` | Unchanged snapshot of the complete input; keep this with the results |
+
+The workbook stores timestamps as ISO text to preserve microseconds. Its
+summary formulas update if measurements are edited in the Experiment sheet;
+the saved CSVs and reports retain the original analysis. Missing values are
+blank, not zero. Gas indices are relative; CO/NO2 columns are aliases of the
+reducing/oxidising indices, not separate sensors.
+
+To analyse the whole input, omit `--start`:
+
+```bash
+python3 analyse.py --input data/readings.csv --excel
+```
+
+The whole-input dataset is named `cleaned_thingspeak_data.csv` instead of
+`experiment.csv`. A normal ThingSpeak export works with the same command.
+Use `--output-dir data/my-analysis` only when you want a particular **empty**
+results folder; an existing nonempty folder is rejected to protect earlier
+results. A run with no readable readings in the selected window fails before
+creating outputs.
 
 For a full recovery export, use the script's `thingspeak_verified.csv`. When
 downloading manually through the feed API, include `status=true`, explicit UTC
@@ -238,15 +281,6 @@ start/end dates and all fields. The API returns at most 8,000 rows per request;
 split longer windows, as the recovery script does. Without status, only the
 original eight measurements can be recovered. See
 [ThingSpeak read parameters](https://www.mathworks.com/help/thingspeak/readdata.html).
-
-Optional experiment bounds are inclusive and interpreted in SAST when no
-offset is provided. Supply both bounds; without them there are no prompts and
-no experiment extract:
-
-```bash
-python3 analyse.py --input data/readings.csv \
-  --start "2026-07-01 08:00:00" --end "2026-07-01 10:00:00"
-```
 
 The committed `thingspeak_data.csv` contains 100 export rows followed by
 1,328 local rows under the export header. Standard loading deliberately
@@ -260,10 +294,6 @@ python3 analyse.py --input thingspeak_data.csv --legacy-mixed \
 This writes corrected outputs and leaves the original file untouched. The
 historical gas indices include values above 100, indicating an older scale;
 do not compare those directly with current baseline-derived 0–100 indices.
-
-Analysis creates `cleaned_thingspeak_data.csv`, `gas_report.csv`, and, when
-bounds are supplied, `experiment.csv`. Invalid timestamps are counted and
-dropped; an empty valid dataset produces a clear error.
 
 ## Development checks
 

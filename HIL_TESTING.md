@@ -150,12 +150,18 @@ This program does not automatically start on boot yet.
 python3 analyse.py --input RUN_DIR/readings.csv --output-dir RUN_DIR/analysis
 ```
 
-Expected: one summary, cleaned data and gas report, no date prompts and no
-network calls. If pandas is absent, install it while online using
-`requirements-analysis.txt`, then repeat the offline test.
+Expected: one summary, cleaned data, statistics CSV, gas report, source snapshot
+and reports, with no date prompts or network calls. Use a new empty output
+directory for each run, or omit `--output-dir` for an automatically created
+folder. Install `requirements-analysis.txt` while online if dependencies are
+absent, then repeat the offline test.
 
-Optional: extract a window using `--start` and `--end`, both in SAST, taken
-from the reported capture range. Avoid copying the old experiment dates.
+To analyse an experiment, add `--start "YYYY-MM-DD HH:MM:SS"` using its actual
+SAST date/time. The end defaults to the last readable sample; `--end` is optional.
+All reports should cover only that experiment. Add `--excel` to produce
+`analysis.xlsx` and verify its row count and final precise timestamp against
+`experiment.csv`. Repeat the same command without `--output-dir`: two new
+folders should have matching CSVs and source hashes. Avoid copying old dates.
 
 ## 6. Missing particulate sensor (optional resilience test)
 

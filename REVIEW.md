@@ -144,6 +144,38 @@ do not replace the cloud source. The local CSV remains the primary record;
 old channel entries without status cannot be backfilled in place with the five
 extra measurements, and startup outliers still require investigation.
 
+### Repeatable experiment analysis — 9 October 2026
+
+`analyse.py --input CSV --start "YYYY-MM-DD HH:MM:SS" --excel` now performs
+the experiment analysis in one offline run. The end defaults to the latest
+timestamp with an available measurement. The previous bounds option extracted
+an experiment but calculated statistics and gas trends over the whole source;
+selection now happens before every report is calculated. Raw gas resistances
+are also included in the statistics.
+
+Each default run creates a separate results directory. It contains an Excel
+workbook, selected measurements, statistics, gas trends, an unchanged input
+snapshot, and reports recording the bounds, source/code hashes and dependency
+versions. Explicit nonempty output directories are rejected. Invalid/empty
+selections fail before creating files. XlsxWriter is an analysis dependency;
+CSV-only operation does not import it. Timestamp text in Excel and CSV retains
+the precise UTC and SAST times.
+
+All 46 simulated tests passed, including seven new experiment-analysis checks.
+The supplied 654-row flight CSV was analysed twice from 9 October 11:00 SAST.
+Both runs selected 398 readings, starting at 11:00:00.366145 and ending at
+13:12:25.742104 SAST, in separate directories. Their measurement/statistics/gas
+CSVs and source snapshots were identical. All selected numeric values, precise
+timestamps and 15 cached workbook summaries matched the selected source data;
+the workbook had no formula errors. All three worksheet previews were checked.
+These checks ran on Windows with Python 3.12.14, pandas 3.0.1 and XlsxWriter
+3.2.9. Running the updated analysis on the Pi remains an operator check.
+
+The complete source CSV contains several recording sessions. Always provide
+the experiment's actual date/time when selecting a window; use `--end` as well
+if the file includes later experiments. The source snapshot preserves rows
+outside the selected window for later analysis.
+
 ## Recommended next changes
 
 1. **Regenerate exposed ThingSpeak keys.** Previous Write and Read keys remain
