@@ -11,8 +11,9 @@ Scroll or select the navigation links to descend through the exhibit.
 Move across the chart, tap it, or use the observation slider to read values.
 Keyboard users can use Tab and arrow keys on the slider.
 Select a chart legend label to show or hide a trace.
-Pause balloon keeps the balloon still while you scroll and removes title fades.
-Resume balloon restores the scroll-driven descent. The page and chart remain usable.
+Play record advances through the original ground-test observations at 10 rows/second.
+Pause record holds the selected reading. Manual chart/slider inspection or leaving
+the chart pauses playback. The end of the record offers Replay record.
 System reduced-motion preferences are respected automatically.
 The QR code and repository link open the same GitHub repository.
 

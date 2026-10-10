@@ -3,13 +3,19 @@ VERIFICATION — 10 OCTOBER 2026
 Actual Google Chrome and Microsoft Edge, opened against the standalone file URL.
 Network was disabled throughout: no server or internet required.
 
-Latest reading and control update: Google Chrome at 1440 x 960, 390 x 844
-and 320 x 700. Supporting notes are 14px normal-case prose; the laboratory
-note is 15px. The research-question emphasis is upright bold in the same
-font and colour. Mobile research copy has a clear background. Pausing keeps
-the balloon's rendered position unchanged while scrolling; resuming moves
-it again. Actual pointer and keyboard toggles, default system reduced motion,
-image decoding and chart interaction pass without browser errors.
+Latest section and record-playback update: Google Chrome at 1440 x 960,
+390 x 844 and 320 x 700. Six chapter boundaries have full-width dividers;
+section labels use longer rules and larger numbers. Warm evidence paper
+and cooler findings sky distinguish the transition. The global balloon
+pause button is removed. Play record advances through the original recorded
+rows at 10 observations per second. Pause holds the selected observation;
+keyboard slider changes, chart inspection and leaving the chart stop replay.
+The final observation stops playback and offers Replay record.
+Actual pointer/keyboard controls, original timestamps and values, final-row
+handling, replay and no-JavaScript fallback all pass. System reduced motion
+keeps the balloon still and recorded data does not play automatically.
+The 15px laboratory note, 14px supporting notes and same-font bold research
+question emphasis are retained. Photos and the QR decode without errors.
 
 Colour review: Chrome desktop and 390/320px mobile views, with visual
 inspection across the hero, atmosphere, findings and landing. Deep blue
@@ -19,7 +25,7 @@ The enlarged mobile balloon occupies clear space below the repository link.
 Actual composited balloon pixels were checked against the background;
 at least 60% of pixels with alpha >= 0.25 reach 3:1 contrast at all three sizes.
 Landing heading, body copy, researcher labels and repository link achieve
-at least 6.88:1 text contrast against the sky. Pause, return-to-top and system
+at least 6.62:1 text contrast against the sky. Return-to-top and system
 reduced-motion behaviour were rechecked. Earlier functional checks follow.
 
 PASS: Desktop 1440 x 960, tablet 768 x 1024, phones 390 x 844 and 320 x 700.
@@ -34,7 +40,7 @@ PASS: All 525 real observations embedded; exact last-sample timestamp/value.
 PASS: Mouse chart inspection and touch chart inspection.
 PASS: Legend trace hiding/restoring and keyboard observation slider.
 PASS: Actual browser CSV download saved, with corrected headers and 525 rows.
-PASS: Motion control and system reduced-motion behavior.
+PASS: Recorded-data playback, pause, manual inspection and system reduced motion.
 PASS: No-JavaScript text, photography and static SVG chart fallback.
 PASS: No horizontal overflow in tested viewport widths.
 PASS: No JavaScript exceptions, console errors or image-loading errors.

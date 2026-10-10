@@ -7,9 +7,11 @@ The approved website is `index.html`. It includes the ASCII balloon, photographs
 QR code, verified laboratory observations and interactive chart in one file.
 It runs directly in a browser and requires no build or external dependencies.
 
-**Pause balloon** keeps the balloon still while you scroll and read. **Resume
-balloon** restores the descent. The page and scientific chart remain usable
-while the balloon is paused. System reduced-motion preferences start it paused.
+The ground-test chart has **Play record** and **Pause record** controls.
+Replay advances through the original observations at ten rows per second.
+Manual inspection or leaving the chart pauses playback. **Replay record**
+starts again after the final reading. The balloon follows scrolling and
+respects system reduced-motion preferences.
 
 ## GitHub Pages
 
