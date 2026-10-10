@@ -1,0 +1,8 @@
+__pycache__/
+*.py[cod]
+.venv/
+.test-deps/
+data/
+*.log
+.env
+.~lock.*#

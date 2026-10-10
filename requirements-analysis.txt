@@ -1,0 +1,4 @@
+# Analysis on either a development computer or the Pi; no hardware libraries.
+pandas>=2.0
+tzdata
+XlsxWriter>=3.2

@@ -1,0 +1,498 @@
+Local readings: /home/mariska/Desktop/Atmospheric-particle-sensor/hil-results/offline-20261008-114552-kSJTBP/readings.csv
+===== SENSOR READINGS =====
+
+Temperature : 23.61 C
+Humidity    : 81.52 %
+Pressure    : 681.62 hPa
+Light       : 203.41 Lux
+
+PM1.0       : 13.0
+PM2.5       : 17.0
+PM10        : 17.0
+
+NO2 Index   : 0
+CO Index    : 0
+NH3 Index   : 54
+
+===========================
+
+===== GAS REPORT =====
+
+NO2 Index      : 0
+CO Index       : 0
+H2 Index       : 0
+NH3 Index      : 54
+CH4 Index      : 0
+C3H8 Index     : 54
+C4H10 Index    : 54
+Ethanol Index  : 0
+
+Confidence:
+MEDIUM
+
+=====================
+
+===== SENSOR READINGS =====
+
+Temperature : 38.08 C
+Humidity    : 21.78 %
+Pressure    : 871.27 hPa
+Light       : 203.41 Lux
+
+PM1.0       : 12.0
+PM2.5       : 16.0
+PM10        : 16.0
+
+NO2 Index   : 0
+CO Index    : 0
+NH3 Index   : 52
+
+===========================
+
+===== GAS REPORT =====
+
+NO2 Index      : 0
+CO Index       : 0
+H2 Index       : 0
+NH3 Index      : 52
+CH4 Index      : 0
+C3H8 Index     : 52
+C4H10 Index    : 52
+Ethanol Index  : 0
+
+Confidence:
+MEDIUM
+
+=====================
+
+===== SENSOR READINGS =====
+
+Temperature : 37.99 C
+Humidity    : 21.75 %
+Pressure    : 871.25 hPa
+Light       : 203.41 Lux
+
+PM1.0       : 12.0
+PM2.5       : 17.0
+PM10        : 17.0
+
+NO2 Index   : 0
+CO Index    : 0
+NH3 Index   : 52
+
+===========================
+
+===== GAS REPORT =====
+
+NO2 Index      : 0
+CO Index       : 0
+H2 Index       : 0
+NH3 Index      : 52
+CH4 Index      : 0
+C3H8 Index     : 52
+C4H10 Index    : 52
+Ethanol Index  : 0
+
+Confidence:
+MEDIUM
+
+=====================
+
+===== SENSOR READINGS =====
+
+Temperature : 38.01 C
+Humidity    : 21.72 %
+Pressure    : 871.26 hPa
+Light       : 204.3 Lux
+
+PM1.0       : 13.0
+PM2.5       : 17.0
+PM10        : 17.0
+
+NO2 Index   : 0
+CO Index    : 0
+NH3 Index   : 53
+
+===========================
+
+===== GAS REPORT =====
+
+NO2 Index      : 0
+CO Index       : 0
+H2 Index       : 0
+NH3 Index      : 53
+CH4 Index      : 0
+C3H8 Index     : 53
+C4H10 Index    : 53
+Ethanol Index  : 0
+
+Confidence:
+MEDIUM
+
+=====================
+
+===== SENSOR READINGS =====
+
+Temperature : 37.94 C
+Humidity    : 21.64 %
+Pressure    : 871.3 hPa
+Light       : 204.3 Lux
+
+PM1.0       : 12.0
+PM2.5       : 17.0
+PM10        : 17.0
+
+NO2 Index   : 0
+CO Index    : 0
+NH3 Index   : 54
+
+===========================
+
+===== GAS REPORT =====
+
+NO2 Index      : 0
+CO Index       : 0
+H2 Index       : 0
+NH3 Index      : 54
+CH4 Index      : 0
+C3H8 Index     : 54
+C4H10 Index    : 54
+Ethanol Index  : 0
+
+Confidence:
+MEDIUM
+
+=====================
+
+===== SENSOR READINGS =====
+
+Temperature : 37.89 C
+Humidity    : 21.76 %
+Pressure    : 871.32 hPa
+Light       : 204.3 Lux
+
+PM1.0       : 12.0
+PM2.5       : 17.0
+PM10        : 17.0
+
+NO2 Index   : 0
+CO Index    : 0
+NH3 Index   : 52
+
+===========================
+
+===== GAS REPORT =====
+
+NO2 Index      : 0
+CO Index       : 0
+H2 Index       : 0
+NH3 Index      : 52
+CH4 Index      : 0
+C3H8 Index     : 52
+C4H10 Index    : 52
+Ethanol Index  : 0
+
+Confidence:
+MEDIUM
+
+=====================
+
+===== SENSOR READINGS =====
+
+Temperature : 36.76 C
+Humidity    : 25.16 %
+Pressure    : 871.32 hPa
+Light       : 163.62 Lux
+
+PM1.0       : 11.0
+PM2.5       : 16.0
+PM10        : 16.0
+
+NO2 Index   : 0
+CO Index    : 0
+NH3 Index   : 52
+
+===========================
+
+===== GAS REPORT =====
+
+NO2 Index      : 0
+CO Index       : 0
+H2 Index       : 0
+NH3 Index      : 52
+CH4 Index      : 0
+C3H8 Index     : 52
+C4H10 Index    : 52
+Ethanol Index  : 0
+
+Confidence:
+MEDIUM
+
+=====================
+
+===== SENSOR READINGS =====
+
+Temperature : 37.24 C
+Humidity    : 25.59 %
+Pressure    : 871.33 hPa
+Light       : 199.51 Lux
+
+PM1.0       : 11.0
+PM2.5       : 17.0
+PM10        : 17.0
+
+NO2 Index   : 0
+CO Index    : 0
+NH3 Index   : 52
+
+===========================
+
+===== GAS REPORT =====
+
+NO2 Index      : 0
+CO Index       : 0
+H2 Index       : 0
+NH3 Index      : 52
+CH4 Index      : 0
+C3H8 Index     : 52
+C4H10 Index    : 52
+Ethanol Index  : 0
+
+Confidence:
+MEDIUM
+
+=====================
+
+===== SENSOR READINGS =====
+
+Temperature : 37.28 C
+Humidity    : 22.28 %
+Pressure    : 871.32 hPa
+Light       : 200.85 Lux
+
+PM1.0       : 11.0
+PM2.5       : 16.0
+PM10        : 16.0
+
+NO2 Index   : 0
+CO Index    : 0
+NH3 Index   : 46
+
+===========================
+
+===== GAS REPORT =====
+
+NO2 Index      : 0
+CO Index       : 0
+H2 Index       : 0
+NH3 Index      : 46
+CH4 Index      : 0
+C3H8 Index     : 46
+C4H10 Index    : 46
+Ethanol Index  : 0
+
+Confidence:
+MEDIUM
+
+=====================
+
+===== SENSOR READINGS =====
+
+Temperature : 37.04 C
+Humidity    : 22.57 %
+Pressure    : 871.29 hPa
+Light       : 202.99 Lux
+
+PM1.0       : 8.0
+PM2.5       : 12.0
+PM10        : 12.0
+
+NO2 Index   : 0
+CO Index    : 0
+NH3 Index   : 46
+
+===========================
+
+===== GAS REPORT =====
+
+NO2 Index      : 0
+CO Index       : 0
+H2 Index       : 0
+NH3 Index      : 46
+CH4 Index      : 0
+C3H8 Index     : 46
+C4H10 Index    : 46
+Ethanol Index  : 0
+
+Confidence:
+MEDIUM
+
+=====================
+
+===== SENSOR READINGS =====
+
+Temperature : 36.7 C
+Humidity    : 22.46 %
+Pressure    : 871.23 hPa
+Light       : 200.85 Lux
+
+PM1.0       : 8.0
+PM2.5       : 11.0
+PM10        : 11.0
+
+NO2 Index   : 0
+CO Index    : 0
+NH3 Index   : 47
+
+===========================
+
+===== GAS REPORT =====
+
+NO2 Index      : 0
+CO Index       : 0
+H2 Index       : 0
+NH3 Index      : 47
+CH4 Index      : 0
+C3H8 Index     : 47
+C4H10 Index    : 47
+Ethanol Index  : 0
+
+Confidence:
+MEDIUM
+
+=====================
+
+===== SENSOR READINGS =====
+
+Temperature : 36.53 C
+Humidity    : 22.81 %
+Pressure    : 871.24 hPa
+Light       : 200.85 Lux
+
+PM1.0       : 8.0
+PM2.5       : 11.0
+PM10        : 12.0
+
+NO2 Index   : 0
+CO Index    : 0
+NH3 Index   : 48
+
+===========================
+
+===== GAS REPORT =====
+
+NO2 Index      : 0
+CO Index       : 0
+H2 Index       : 0
+NH3 Index      : 48
+CH4 Index      : 0
+C3H8 Index     : 48
+C4H10 Index    : 48
+Ethanol Index  : 0
+
+Confidence:
+MEDIUM
+
+=====================
+
+===== SENSOR READINGS =====
+
+Temperature : 37.34 C
+Humidity    : 22.39 %
+Pressure    : 871.29 hPa
+Light       : 166.13 Lux
+
+PM1.0       : 9.0
+PM2.5       : 12.0
+PM10        : 13.0
+
+NO2 Index   : 0
+CO Index    : 0
+NH3 Index   : 50
+
+===========================
+
+===== GAS REPORT =====
+
+NO2 Index      : 0
+CO Index       : 0
+H2 Index       : 0
+NH3 Index      : 50
+CH4 Index      : 0
+C3H8 Index     : 50
+C4H10 Index    : 50
+Ethanol Index  : 0
+
+Confidence:
+MEDIUM
+
+=====================
+
+===== SENSOR READINGS =====
+
+Temperature : 38.25 C
+Humidity    : 21.27 %
+Pressure    : 871.26 hPa
+Light       : 166.13 Lux
+
+PM1.0       : 9.0
+PM2.5       : 11.0
+PM10        : 13.0
+
+NO2 Index   : 0
+CO Index    : 0
+NH3 Index   : 48
+
+===========================
+
+===== GAS REPORT =====
+
+NO2 Index      : 0
+CO Index       : 0
+H2 Index       : 0
+NH3 Index      : 48
+CH4 Index      : 0
+C3H8 Index     : 48
+C4H10 Index    : 48
+Ethanol Index  : 0
+
+Confidence:
+MEDIUM
+
+=====================
+
+===== SENSOR READINGS =====
+
+Temperature : 38.62 C
+Humidity    : 20.63 %
+Pressure    : 871.25 hPa
+Light       : 166.13 Lux
+
+PM1.0       : 8.0
+PM2.5       : 11.0
+PM10        : 12.0
+
+NO2 Index   : 0
+CO Index    : 0
+NH3 Index   : 47
+
+===========================
+
+===== GAS REPORT =====
+
+NO2 Index      : 0
+CO Index       : 0
+H2 Index       : 0
+NH3 Index      : 47
+CH4 Index      : 0
+C3H8 Index     : 47
+C4H10 Index    : 47
+Ethanol Index  : 0
+
+Confidence:
+MEDIUM
+
+=====================
+
+
+Stopped. Saved 15 readings to /home/mariska/Desktop/Atmospheric-particle-sensor/hil-results/offline-20261008-114552-kSJTBP/readings.csv

@@ -1,0 +1,36 @@
+Atmospheric sensor offline HIL test
+Started: 2026-10-08T11:53:34+02:00
+Python: /home/mariska/.virtualenvs/pimoroni/bin/python
+Python 3.13.5
+PRETTY_NAME="Debian GNU/Linux 13 (trixie)"
+NAME="Debian GNU/Linux"
+VERSION_ID="13"
+VERSION="13 (trixie)"
+VERSION_CODENAME=trixie
+DEBIAN_VERSION_FULL=13.6
+ID=debian
+HOME_URL="https://www.debian.org/"
+SUPPORT_URL="https://www.debian.org/support"
+BUG_REPORT_URL="https://bugs.debian.org/"
+Commit: 3e9a0a2 Add one-command offline HIL runner
+Results: /home/mariska/Desktop/Atmospheric-particle-sensor/hil-results/offline-20261008-115334-YqyObx
+
+Network disconnected: confirmed by operator (not automatically verified).
+During capture, wave near LIGHT and move away to test LCD page changes.
+Starting 300-second acquisition with cloud uploads explicitly disabled.
+Acquisition exit code: 0
+Checking row count, timestamps and sensor availability:
+Rows: 15
+UTC range: 2026-10-08T09:53:45.385881+00:00 -> 2026-10-08T09:58:25.423880+00:00
+Largest gap: 20.02 seconds
+Unavailable values: none
+PASS
+Last 20 system log lines:
+2026-10-08 11:53:41,947 | INFO     | atmo_system | Starting atmospheric monitoring system; data directory=/home/mariska/Desktop/Atmospheric-particle-sensor/hil-results/offline-20261008-115334-YqyObx
+2026-10-08 11:53:41,947 | INFO     | atmo_system | Cloud uploads disabled (offline mode); local logging continues
+2026-10-08 11:53:42,188 | INFO     | atmo_system | Warming up PMS5003 particulate sensor...
+2026-10-08 11:53:45,211 | INFO     | atmo_system | Entering main loop; cloud uploads disabled
+2026-10-08 11:58:45,215 | INFO     | atmo_system | Stopped; saved 15 readings
+LCD navigation: PASS (operator observed).
+OVERALL: PASS
+Send back this report: /home/mariska/Desktop/Atmospheric-particle-sensor/hil-results/offline-20261008-115334-YqyObx/report.txt

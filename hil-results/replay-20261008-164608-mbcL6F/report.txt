@@ -1,0 +1,36 @@
+Atmospheric sensor flight recovery
+Mode: --upload
+Input: data/upload-20261008-143406-389597/source_readings.csv
+Results: /home/mariska/Desktop/Atmospheric-particle-sensor/hil-results/replay-20261008-164608-mbcL6F
+Stop sensor acquisition before recovery. Check that the following UTC range is the actual flight.
+Readings: 132; UTC range: 2026-10-08T13:43:58.151996+00:00 -> 2026-10-08T14:27:39.943816+00:00
+Fields 1-8 keep the existing mapping; status carries light, raw gas, NH3 index and precise time.
+PREVIEW ONLY: No network connection or upload was attempted.
+Results: /home/mariska/Desktop/Atmospheric-particle-sensor/hil-results/replay-20261008-164608-mbcL6F/preview
+Cleaned 132 readings; discarded 0 invalid timestamps
+SAST range: 2026-10-08 15:43:58.151996+02:00 -> 2026-10-08 16:27:39.943816+02:00
+===== SUMMARY STATISTICS =====
+
+    measurement  count    mean    min    max
+  temperature_c    132  38.406  23.61  40.21
+   humidity_pct    132  21.107  19.45  81.52
+   pressure_hpa    132 868.467 681.62 870.00
+      light_lux    132 169.382  59.06 182.04
+          pm1_0    132   0.000   0.00   0.00
+          pm2_5    132   0.008   0.00   1.00
+           pm10    132   0.008   0.00   1.00
+oxidising_index    132   0.758   0.00 100.00
+ reducing_index    132   0.371   0.00  49.00
+      nh3_index    132  32.441  13.90  96.00
+       co_index    132   0.371   0.00  49.00
+      no2_index    132   0.758   0.00 100.00
+
+===============================
+
+Outputs: /home/mariska/Desktop/Atmospheric-particle-sensor/hil-results/replay-20261008-164608-mbcL6F/preview-analysis
+Uploading to channel 3429238; matching stored entries will be skipped.
+Readings: 132; UTC range: 2026-10-08T13:43:58.151996+00:00 -> 2026-10-08T14:27:39.943816+00:00
+Fields 1-8 keep the existing mapping; status carries light, raw gas, NH3 index and precise time.
+ERROR: ThingSpeak returned HTTP 400; check keys, channel and quota
+OVERALL: FAIL or incomplete. Keep the original CSV and rerun to verify and resume.
+Send back this report: /home/mariska/Desktop/Atmospheric-particle-sensor/hil-results/replay-20261008-164608-mbcL6F/report.txt

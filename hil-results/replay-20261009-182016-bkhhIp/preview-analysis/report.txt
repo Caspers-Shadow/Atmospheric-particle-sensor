@@ -1,0 +1,32 @@
+PASS: 398 selected readings
+SAST range: 2026-10-09T11:00:00.366145+02:00 -> 2026-10-09T13:12:25.742104+02:00
+End selection: last_readable_record
+Source SHA-256: 4962f356aa937018de3f94e6757ceabf475bd0773b48a51f7ea9584499ca92f8
+Invalid timestamps dropped: 0
+Rows without readable measurements dropped: 0
+Largest selected sample gap (seconds): 20.014945
+
+    measurement  count       mean      min       max
+  temperature_c    398     33.211     7.55     61.33
+   humidity_pct    398      3.093     0.00     38.40
+   pressure_hpa    398    291.401    19.22    863.75
+      light_lux    398     64.874    25.72    164.68
+          pm1_0    398      0.221     0.00      1.00
+          pm2_5    398      0.824     0.00      3.00
+           pm10    398      1.116     0.00      4.00
+  oxidising_raw    398  12223.411  3922.18  47878.58
+   reducing_raw    398 145448.213 71272.73 432888.89
+        nh3_raw    398  51831.211  6985.69 331421.38
+oxidising_index    398     11.014     0.00    100.00
+ reducing_index    398     37.578     0.00     64.40
+      nh3_index    398     76.066     0.00     96.50
+       co_index    398     37.578     0.00     64.40
+      no2_index    398     11.014     0.00    100.00
+
+Gas indices are relative; CO/NO2 are aliases, not separate sensors.
+
+cleaned_thingspeak_data.csv: selected measurements, precise UTC and SAST timestamps.
+summary_statistics.csv: statistics for these selected readings only.
+gas_report.csv: relative gas trends for these selected readings only.
+source.csv: unchanged source snapshot.
+report.json: selection, versions, hashes and repeat arguments.

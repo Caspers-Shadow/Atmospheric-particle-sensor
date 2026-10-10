@@ -1,2 +1,345 @@
-# Atmospheric-particle-sensor
-Atmospheric particle sensor for a raspberry pi 5 with a Enviro+ and PMS5003
+# Atmospheric Monitoring System (Raspberry Pi 5 + Enviro+ + PMS5003)
+
+Collect temperature, humidity, pressure, light, particulate matter and relative
+gas indices. Display readings on the Enviro+ LCD and save them locally, with
+optional ThingSpeak uploads. Acquisition and analysis can run without internet
+once the dependencies and Pi interfaces are configured.
+
+## Files
+
+| File | Purpose |
+| --- | --- |
+| `readings.py` | Sensor acquisition, local CSV, LCD and optional background uploads |
+| `analyse.py` | Offline cleaning, statistics, gas trends and experiment extraction |
+| `check_run.py` | Check a HIL capture using only the Python standard library |
+| `run_offline_test.sh` | Five-minute offline HIL capture, checker and saved report |
+| `upload_flight.sh` | Recovery preview or verified cloud upload, followed by analysis |
+| `upload_flight.py` | Historical bulk replay with read-back verification and restart support |
+| `thingspeak_schema.py` | Shared field mapping and extra-measurement status format |
+| `MATLAB_Visualization.m` | Full-flight, aligned eight-field ThingSpeak dashboard |
+| `requirements.txt` | Pi hardware, networking and analysis dependencies |
+| `requirements-analysis.txt` | Analysis dependencies for a computer without hardware |
+| `requirements-dev.txt` | Dependencies for the simulated regression tests |
+| `HIL_TESTING.md` | Local-terminal test sequence for the Pi |
+| `REVIEW.md` | Fixed problems, verification and recommended next changes |
+
+The committed CSVs and log are historical experiment records. New acquisition
+uses `data/readings.csv`, and each analysis creates a new `data/analysis-.../` folder, both
+ignored by Git. Existing tracked records remain tracked.
+
+## Pi setup
+
+1. Enable I2C, SPI and UART hardware in `sudo raspi-config`. Disable the UART
+   login shell. Follow [Pimoroni's Enviro+ setup instructions](https://learn.pimoroni.com/article/getting-started-with-enviro-plus)
+   for the installed Raspberry Pi OS. Their installer can prepare a virtual
+   environment and interfaces. Reboot after interface changes.
+2. Activate the environment containing the hardware libraries. For the
+   Pimoroni installer this is normally:
+
+   ```bash
+   source ~/.virtualenvs/pimoroni/bin/activate
+   ```
+
+   For a separate environment, create it once while online:
+
+   ```bash
+   python3 -m venv --system-site-packages .venv
+   source .venv/bin/activate
+   ```
+
+3. From this repository, install dependencies while online:
+
+   ```bash
+   python3 -m pip install -r requirements.txt
+   ```
+
+   The BME280 distribution is **pimoroni-bme280**, imported as `bme280`.
+   Current LCD code imports `st7735` and uses `GPIO9` / `GPIO12` pin names,
+   matching Pimoroni's current examples. A working Pi installation still needs
+   to be verified on the actual board; installing Python packages alone does
+   not configure its interfaces.
+
+4. Optional: export clean-air gas baselines measured after warm-up:
+
+   ```bash
+   export GAS_BASELINE_OXIDISING=21500
+   export GAS_BASELINE_REDUCING=185000
+   export GAS_BASELINE_NH3=190000
+   ```
+
+   Baselines must be finite positive resistances in ohms. Pimoroni describes
+   gas stabilisation as taking 10 minutes or longer; use stabilised values
+   for calibration. The short startup delay is for the particulate sensor.
+   See [the manufacturer's guide](https://learn.pimoroni.com/article/getting-started-with-enviro-plus).
+
+## Acquisition
+
+Local-only operation, with no cloud requests:
+
+```bash
+python3 readings.py --offline
+```
+
+A five-minute HIL capture in a separate directory:
+
+```bash
+python3 readings.py --offline --duration 300 --data-dir hil-results/offline
+```
+
+For cloud uploads, supply your own ThingSpeak Write API key and omit `--offline`:
+
+```bash
+export THINGSPEAK_WRITE_API_KEY="your_key_here"
+python3 readings.py
+```
+
+Without an API key, uploads are disabled and local acquisition continues.
+The old sources contained Write and Read keys: regenerate exposed keys in
+ThingSpeak, because removing them from current source does not remove history.
+
+Runtime behaviour:
+
+- Full sensor readings and CSV rows every 20 seconds; the first read starts
+  immediately after hardware startup. LCD environment refresh and navigation
+  run on a 0.1-second tick. Sensor reads and disk writes can still delay a tick.
+- Each CSV row is flushed and synchronised to disk before being offered for
+  upload. A header mismatch or storage failure stops acquisition visibly.
+- Uploads run on a separate worker. Failures back off from 20 seconds up to
+  300 seconds, then reset after success. No connection check is required to
+  start acquisition. Upload requests use POST and carry the original sample
+  timestamp, following [ThingSpeak's write API](https://www.mathworks.com/help/thingspeak/writedata.html).
+- The upload queue retains only the latest waiting sample. **Outage history
+  stays in the local CSV; run the recovery script after collection to replay it.**
+- PM and gas failures use `-1` for unavailable values. Analysis excludes these
+  values from statistics and trends; uploads omit unavailable fields.
+- Logs rotate at 2 MB with three backups. CSV data is not rotated or deleted.
+
+Use `--no-lcd` for acquisition without the display. Stop with `Ctrl+C`, or use
+`--duration` for an automatic stop. Cadence and duration use a monotonic timer,
+so a system-clock correction cannot reset the acquisition schedule. UTC sample
+timestamps still depend on the Pi's clock being correct.
+
+## Launch, collect, upload and analyse
+
+Use a separate directory for each flight, and check the UTC clock before launch:
+
+```bash
+python3 readings.py --offline --data-dir data/flight-01
+```
+
+After collecting the Pi, stop acquisition, keep a backup of `readings.csv`, and
+reconnect to the internet. Recovery can run on the Pi or another computer with
+the repo, Python, requests and pandas; no sensors are required for replay.
+
+**Running `analyse.py` creates local results only. It does not upload anything
+to ThingSpeak.** To send an experiment from a CSV containing several sessions,
+activate the Pi environment and supply the same start time to the recovery script:
+
+```bash
+source ~/.virtualenvs/pimoroni/bin/activate
+python3 -m pip install requests
+bash upload_flight.sh --upload data/readings.csv --start "2026-10-09 11:00:00"
+```
+
+Change the CSV path and start time for each experiment. The end defaults to the
+last readable record; add `--end` if there are later experiments in the file.
+Times without offsets mean SAST, and both bounds are inclusive. The preview,
+upload, verification and downloaded analysis all use this selected window.
+The full source snapshot is preserved. For this flight, expect 398 verified
+readings ending at 13:12:25.742104 SAST. Only a verified upload `PASS` confirms
+that the measurements reached the channel.
+
+First check the full saved flight and the analysis path without network access:
+
+```bash
+bash upload_flight.sh --dry-run data/flight-01/readings.csv
+```
+
+Then send and verify it:
+
+```bash
+bash upload_flight.sh --upload data/flight-01/readings.csv
+```
+
+The script selects the same Python environments as the offline test runner. It
+asks for the channel ID (default `3429238`), then the current Write and Read API
+keys with hidden input. Keys are not saved in the report. It prepares an
+immutable source snapshot before uploading, checks the channel's field mapping,
+uploads historical batches, reads every entry back, then runs `analyse.py` on
+the downloaded data. A `PASS` requires all rows and values to match, including
+the extra measurements. Stop other writers to that channel during recovery.
+
+Results are under the printed `hil-results/replay-...` folder. Important files:
+
+- `report.txt` and `upload/report.json`: outcome, counts, source hash and UTC range.
+- `upload/source_readings.csv`: unchanged source snapshot; keep it even after upload.
+- `upload/thingspeak_verified.csv`: downloaded, matched entries for the Python pipeline.
+- `analysis/`: cleaned data and gas report from the verified cloud export.
+- `upload/matlab_flight_window.txt`: exact UTC range for the MATLAB dashboard.
+
+Rerun the upload command after an interrupted connection: matching entries are
+skipped, missing entries are sent, and conflicting entries stop the upload.
+The script never clears or overwrites the channel. Existing entries from the
+older live uploader lack extra-measurement status, so they cannot be claimed
+as a complete match; use a separate channel with the same field names for
+such a flight, or analyse the local CSV directly.
+
+ThingSpeak fields remain: temperature, humidity, pressure, PM1.0, PM2.5, PM10,
+oxidising index and reducing index. The JSON `status` entry also stores light,
+the three raw gas resistances, NH3 index and the original microsecond timestamp.
+Recovery adds `fs`/`fe` UTC epoch seconds identifying the full source flight.
+Both live uploads and recovery use this format; `analyse.py` expands it when
+present. Invalid/sentinel readings remain unavailable in analysis. Cloud entry
+time is UTC to the second during recovery; status preserves the precise source
+time. Input timestamps must increase with at most one reading per second.
+
+Recovery uses at most 960 entries per request and waits at least 16 seconds
+between writes, including the first write. All original acquisition dates are
+preserved: uploads do not relabel samples as the collection time. The channel
+needs sufficient message quota. These rules follow the
+[ThingSpeak bulk API](https://www.mathworks.com/help/thingspeak/bulkwritejsondata.html).
+The real channel accepted and returned both Pi captures (30 readings total)
+on 8 October 2026. All 14 columns and precise timestamps matched;
+repeat recovery posted no duplicates. The upload ran on the development
+computer using the Pi CSV. Pi-side replay and larger live flights still need
+testing, described in `HIL_TESTING.md`.
+Recovery reads use at most 100 results per request, splitting longer windows,
+to avoid ThingSpeak's five-minute JSON cache during immediate verification.
+See [API caching](https://www.mathworks.com/help/thingspeak/channel-control.html).
+
+### MATLAB after recovery
+
+`MATLAB_Visualization.m` replaces the old plaintext file named
+`MATLAB Visualization.mat`. Copy its source into the ThingSpeak MATLAB
+Visualization app, or run it in desktop MATLAB with ThingSpeak support.
+Set `readAPIKey` privately in that app/workspace. With current recovery uploads,
+the dashboard automatically selects the complete flight identified by the
+latest inserted entry ID, even when recovering a flight with older acquisition
+dates. To select an older flight, put the three lines from
+`matlab_flight_window.txt` above the script and use `autoFlightWindow = false`.
+Desktop MATLAB can instead use the `THINGSPEAK_READ_API_KEY` environment
+variable. Keep keys out of Git.
+
+The dashboard reads all eight fields together over the explicit UTC flight
+window, splits saturated API responses, sorts by measurement time and displays
+SAST. The old latest-100-point view would cover only about 33 minutes at this
+sampling rate and would not select a recovered flight by date. The updated
+view retains eight plots; the five extra measurements are available in the
+Python analysis and the source snapshot. MATLAB R2025a passed local dashboard
+checks with simulated reads (the Pi fixture, automatic window selection,
+8,005 points and missing values).
+The saved ThingSpeak visualization `Plots of tests` was updated and ran against
+both real captures, showing all 15 points per flight in SAST. After future
+recovery uploads, open the visualization editor and click **Save and Run**;
+flight selection follows the new entry automatically when the script runs.
+Automatic five-minute refreshing requires a paid ThingSpeak license.
+See [the visualization app](https://www.mathworks.com/help/thingspeak/matlab-visualizations-app.html) and
+[the MATLAB read API](https://www.mathworks.com/help/thingspeak/thingspeakread.html).
+
+## Analysis
+
+On the Pi, activate the existing Pimoroni virtual environment before installing
+packages or running analysis. Install the analysis dependencies once while online:
+
+```bash
+source ~/.virtualenvs/pimoroni/bin/activate
+python3 -m pip install -r requirements-analysis.txt
+```
+
+In each new terminal, run the `source` command again before analysis. The earlier
+Pi captures used this environment; plain `python3` outside it uses the system
+Python instead. Raspberry Pi OS protects that installation and rejects `pip`
+with `externally-managed-environment`. Use the virtual environment as described
+in the [Raspberry Pi Python instructions](https://www.raspberrypi.com/documentation/computers/os.html#python-on-raspberry-pi).
+On another computer, use its configured virtual environment instead.
+
+For each experiment, run **one command** with the saved CSV and its start date
+and time. This example selects the 9 October experiment from 11:00 SAST through
+the last readable record, and creates an Excel workbook as well as CSV reports:
+
+```bash
+python3 analyse.py --input data/readings.csv --start "2026-10-09 11:00:00" --excel
+```
+
+On later flights, change the input path and start date/time. An end time is
+optional: the script finds the latest timestamp with at least one available
+sensor measurement. Invalid timestamps and rows with no available measurements
+are excluded. Bounds are inclusive; times without an offset mean SAST. Every
+statistic and gas trend uses the selected experiment only. To stop at a specific
+time, add `--end "2026-10-09 12:00:00"`.
+
+After installation, analysis needs no internet or ThingSpeak keys. Omit
+`--excel` if you only need CSVs. The script prints the new results folder; each
+run creates a separate folder and leaves previous results intact.
+
+| Results file | Use |
+| --- | --- |
+| `analysis.xlsx` | Open this for the summary, selected readings and gas trends; created with `--excel` |
+| `experiment.csv` | Selected experiment measurements with precise UTC and SAST timestamps |
+| `summary_statistics.csv` | Count, mean, minimum and maximum for each selected measurement |
+| `gas_report.csv` | Selected relative gas indices and trends |
+| `report.txt` | Readable result, selected time range, statistics and file guide |
+| `report.json` | Selection settings, source/code hashes, software versions and arguments to reproduce the run |
+| `source.csv` | Unchanged snapshot of the complete input; keep this with the results |
+
+The workbook stores timestamps as ISO text to preserve microseconds. Its
+summary formulas update if measurements are edited in the Experiment sheet;
+the saved CSVs and reports retain the original analysis. Missing values are
+blank, not zero. Gas indices are relative; CO/NO2 columns are aliases of the
+reducing/oxidising indices, not separate sensors.
+
+To analyse the whole input, omit `--start`:
+
+```bash
+python3 analyse.py --input data/readings.csv --excel
+```
+
+The whole-input dataset is named `cleaned_thingspeak_data.csv` instead of
+`experiment.csv`. A normal ThingSpeak export works with the same command.
+Use `--output-dir data/my-analysis` only when you want a particular **empty**
+results folder; an existing nonempty folder is rejected to protect earlier
+results. A run with no readable readings in the selected window fails before
+creating outputs.
+
+For a full recovery export, use the script's `thingspeak_verified.csv`. When
+downloading manually through the feed API, include `status=true`, explicit UTC
+start/end dates and all fields. The API returns at most 8,000 rows per request;
+split longer windows, as the recovery script does. Without status, only the
+original eight measurements can be recovered. See
+[ThingSpeak read parameters](https://www.mathworks.com/help/thingspeak/readdata.html).
+
+The committed `thingspeak_data.csv` contains 100 export rows followed by
+1,328 local rows under the export header. Standard loading deliberately
+rejects this mixture. Recover its known historical layouts explicitly:
+
+```bash
+python3 analyse.py --input thingspeak_data.csv --legacy-mixed \
+  --output-dir data/historical-analysis
+```
+
+This writes corrected outputs and leaves the original file untouched. The
+historical gas indices include values above 100, indicating an older scale;
+do not compare those directly with current baseline-derived 0–100 indices.
+
+## Development checks
+
+Use Python 3.9 or later. Install development dependencies on a computer
+without the sensors, then run the tests:
+
+```bash
+python3 -m pip install -r requirements-dev.txt
+python3 -m unittest discover -s tests -v
+```
+
+These tests simulate hardware and block external socket connections in the
+test process. They cover CSV formats, failures, backoff, offline mode,
+local storage and display progress during a stalled upload. Actual Pi
+compatibility and disconnected operation require the HIL tests.
+
+## Measurement limitations
+
+Gas indices indicate changes relative to a clean-air resistance baseline;
+they are not ppm concentrations or proof that an individual gas is present.
+Gas names sharing a MICS6814 sensing element have the same index. The console
+confidence label is an unvalidated heuristic, not an accuracy estimate.
+Sensor behaviour at stratospheric pressure and temperature is not validated.
