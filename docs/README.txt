@@ -8,7 +8,8 @@ Only the external GitHub repository link requires internet access.
 
 INTERACTIONS
 Scroll or select the navigation links to descend through the exhibit.
-Move across the chart, tap it, or use the observation slider to read values.
+Click the chart, tap it, or use the observation slider to read values.
+Desktop hover and scrolling over the chart leave playback running.
 Keyboard users can use Tab and arrow keys on the slider.
 Select a chart legend label to show or hide a trace.
 Play record advances through the original ground-test observations at 10 rows/second.

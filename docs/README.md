@@ -11,6 +11,8 @@ The ground-test chart has **Play record** and **Pause record** controls.
 Replay advances through the original observations at ten rows per second.
 Playback starts when the chart becomes visible and pauses off-screen.
 Returning resumes it unless the visitor paused or inspected a reading manually.
+Click the chart on desktop or tap it on a phone to pause and inspect a reading.
+Desktop hover and scrolling over the chart leave playback running.
 Manual inspection or leaving the chart pauses playback. **Replay record**
 starts again after the final reading. The balloon follows scrolling and
 respects system reduced-motion preferences.

@@ -3,7 +3,13 @@ VERIFICATION — 10 OCTOBER 2026
 Actual Google Chrome and Microsoft Edge, opened against the standalone file URL.
 Network was disabled throughout: no server or internet required.
 
-Latest mobile and automatic-playback update: Google Chrome at phone widths
+Latest desktop chart interaction: moving or hovering a mouse over the chart
+does not pause replay or change a held reading. Scrolling while the pointer
+is over a visible chart keeps replay running. Clicking pauses and selects
+the reading. Actual mouse movement, wheel scrolling and click checks pass
+at 1920 x 1080 and 1440 x 960; mobile tap interaction remains unchanged.
+
+Mobile and automatic-playback update: Google Chrome at phone widths
 320, 360, 390 and 430px, 768px tablet and 844 x 390px landscape. All three
 photos retain their original 1600 x 1200 JPEGs, with full 4:3 framing and
 13px unobstructed captions. Compact charts render at 300px high; axis ticks
@@ -53,7 +59,8 @@ PASS: Restored ASCII attachment and straight column of | characters,
       visually reviewed at 1440, 390 and 320px; payload shares the centre axis.
 PASS: All photographs and QR image loaded successfully.
 PASS: All 525 real observations embedded; exact last-sample timestamp/value.
-PASS: Mouse chart inspection and touch chart inspection.
+PASS: Desktop click inspection; hover and scrolling do not pause visible replay.
+PASS: Touch chart inspection.
 PASS: Legend trace hiding/restoring and keyboard observation slider.
 PASS: Actual browser CSV download saved, with corrected headers and 525 rows.
 PASS: Recorded-data playback, pause, manual inspection and system reduced motion.
