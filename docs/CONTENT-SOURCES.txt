@@ -1,0 +1,52 @@
+CONTENT AND PROVENANCE
+
+Primary dissertation reference:
+ITRI671_43054226_M_Adriaanzen_Empirical_Study.pdf, 99 pages.
+Chapter 4: hardware, laboratory configuration and limitations.
+Tables 4.7–4.9: selected dataset and PM statistics.
+Section 4.9.8: acquisition intervals.
+PDF pages 54–56 contain these tables and interval results.
+
+Identity:
+Mariska Adriaanzen; Supervisor Prof. GR Drevin; North-West University;
+BSc Honours, Information Technology and Computer Science.
+Verified against the dissertation title metadata and project instruction.
+
+Data:
+Preserved thingspeak_data.csv in the existing Atmospheric-particle-sensor
+repository, read without modifying the repository.
+525 14-column local rows from 2026-07-21T13:00:17.389544+00:00 through
+2026-07-21T15:55:14.534265+00:00.
+These rows were appended beneath a legacy header; that header must not be
+used to map their contents. Verified raw positions (zero-based):
+0 UTC timestamp, 1 temperature, 2 humidity, 3 pressure, 4 light,
+5 PM1.0, 6 PM2.5, 7 PM10, 8 oxidising resistance, 9 reducing resistance,
+10 NH3 resistance, 11 oxidising index, 12 reducing index, 13 NH3 index.
+The downloadable CSV uses descriptive headers for the eight dissertation
+variables. Resistance channels are omitted to keep the export focused.
+
+Independent recalculation exactly reproduces all eight means and ranges
+published in Table 4.8. Mean interval 20.032718933206105 seconds;
+minimum 19.99947 seconds; maximum 20.107525 seconds.
+No negative particulate measurements in the selected window.
+All 525 observations are used in each chart trace; no invented values.
+Acquisition continuity does not independently establish upload success.
+
+Photographs:
+unit.jpeg, Eviro+_RaspberryPi5.jpeg, Plantower.jpeg, existing project assets
+available in the user's Downloads. These photographs match the assembled
+ground-test configuration shown in the empirical dissertation.
+The original JPEG bytes are preserved, without resizing or recompression.
+On phones, complete 4:3 photographs are displayed across the screen with
+headings and captions outside the image; no hardware is cropped off.
+
+QR destination and repository:
+https://github.com/Caspers-Shadow/Atmospheric-particle-sensor
+Verified from the existing local repository's origin.
+The QR is newly encoded at error-correction level M, with a four-module
+quiet zone. It is not a copy of an unrelated QR image.
+
+Design:
+Built from scratch. ASCII helium-balloon surface and payload are procedural
+canvas artwork. No WebGL, external font service, imported animation runtime,
+visualization wrapper, CDN or network data request is required.
