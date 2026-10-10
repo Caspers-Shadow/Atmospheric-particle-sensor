@@ -1,0 +1,13 @@
+{
+  "mode": "upload",
+  "result": "FAIL",
+  "source": "/home/mariska/Desktop/Atmospheric-particle-sensor/hil-results/replay-20261009-182016-bkhhIp/preview/source_readings.csv",
+  "source_sha256": "99c1be3619679e3ff2091629e0890ca21174a23c38b019527219eced8fd915f7",
+  "rows": 398,
+  "start_utc": "2026-10-09T09:00:00.366145+00:00",
+  "end_utc": "2026-10-09T11:12:25.742104+00:00",
+  "channel_id": 3429238,
+  "requested_start": "2026-10-09 11:00:00",
+  "requested_end": null,
+  "error": "ThingSpeak GET request returned HTTP 400; check keys, channel and request settings"
+}

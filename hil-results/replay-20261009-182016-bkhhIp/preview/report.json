@@ -1,0 +1,12 @@
+{
+  "mode": "dry-run",
+  "result": "PREVIEW ONLY",
+  "source": "/home/mariska/Desktop/Atmospheric-particle-sensor/data/readings.csv",
+  "source_sha256": "99c1be3619679e3ff2091629e0890ca21174a23c38b019527219eced8fd915f7",
+  "rows": 398,
+  "start_utc": "2026-10-09T09:00:00.366145+00:00",
+  "end_utc": "2026-10-09T11:12:25.742104+00:00",
+  "channel_id": null,
+  "requested_start": "2026-10-09 11:00:00",
+  "requested_end": null
+}
