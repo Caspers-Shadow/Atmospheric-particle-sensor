@@ -11,7 +11,8 @@ Scroll or select the navigation links to descend through the exhibit.
 Move across the chart, tap it, or use the observation slider to read values.
 Keyboard users can use Tab and arrow keys on the slider.
 Select a chart legend label to show or hide a trace.
-Use the motion control to remove scroll smoothing and title reveals.
+Pause balloon keeps the balloon still while you scroll and removes title fades.
+Resume balloon restores the scroll-driven descent. The page and chart remain usable.
 System reduced-motion preferences are respected automatically.
 The QR code and repository link open the same GitHub repository.
 

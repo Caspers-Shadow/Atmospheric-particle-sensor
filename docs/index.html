@@ -59,6 +59,29 @@
   .motion{font-size:10px;min-height:40px;padding:11px 8px}
   .earth{min-height:1240px;height:140svh}.footer{font-size:9px}.footer a{min-height:44px;align-items:center}
 }
+/* Research notes should be readable prose, rather than tiny uppercase labels. */
+.intro .small-note,.source-note,.table-note,.findings .method{
+  font-family:var(--sans);font-size:14px;line-height:1.7;letter-spacing:0;text-transform:none;
+}
+.intro .small-note{font-size:15px;max-width:680px}
+.hardware-explanation .mono,.cadence .caption{font-size:13px;letter-spacing:.025em}
+.photo-main figcaption,.details-photos figcaption{font-size:12px}
+.stat .caption,.people .caption{font-size:12px;letter-spacing:.03em}
+.chart-top .mono,.legend button,.data-readout,.chart-controls{font-size:12px}
+.summary-table{font-size:12px}.summary-table th{font-size:11px}
+.qr-block p{font-size:11px}.footer{font-size:11px}
+.question-emphasis{font-family:inherit;font-style:normal;font-weight:700;color:inherit}
+.motion{display:inline-flex;align-items:center;gap:10px;font-size:13px;min-height:44px;padding:8px 10px}
+.motion-symbol{font-size:17px;line-height:1}
+.motion.is-paused{color:var(--ink);border-bottom-color:var(--ink)}
+.visually-hidden{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0}
+@media(max-width:650px){
+  .intro{background:var(--bg)}
+  .intro .small-note{max-width:100%;margin-top:30px}
+  .source-note,.table-note,.findings .method{font-size:14px}
+  .intro-copy{max-width:100%}
+  .hero-credit{font-size:11px}
+}
 @media print{.scene,.topbar,.motion,.journey-rail,.terrain{display:none}body,section{background:white!important;color:black!important}.hero,.intro,.cadence,.earth,.findings{height:auto;min-height:0;padding:40px 6vw}.hero h1{font-size:70px}.hero-bottom,.balloon-note{display:none}.hero-intro{color:#333}.photo-main{height:500px;min-height:0}.details-photos img{height:300px;min-height:0}.reveal{opacity:1!important;transform:none!important}.evidence{break-inside:avoid}.footer{position:static;margin-top:40px}}
 </style>
 </head>
@@ -71,7 +94,9 @@
   <div class="institution">NORTH-WEST UNIVERSITY<br>BSc HONOURS · 2026</div>
   <nav aria-label="Exhibit sections"><a href="#instrument">Instrument</a><a href="#evidence">Evidence</a><a href="#earth">Researcher ↗</a></nav>
 </header>
-<button class="motion" id="motion" type="button" aria-pressed="true">Motion on / pause</button>
+<button class="motion" id="motion" type="button" aria-label="Pause balloon animation" aria-pressed="false" aria-describedby="motion-help" title="Keeps the balloon still while you scroll."><span class="motion-symbol" aria-hidden="true">Ⅱ</span><span id="motion-label">Pause balloon</span></button>
+<span class="visually-hidden" id="motion-help">Pause the balloon while you read. Scrolling and the data chart remain available.</span>
+<span class="visually-hidden" id="motion-status" role="status" aria-live="polite"></span>
 <main id="top">
 <section class="hero" aria-labelledby="hero-title">
   <div class="hero-content">
@@ -87,12 +112,12 @@
 </section>
 <section class="intro" id="question" aria-labelledby="question-title">
   <div class="eyebrow"><span class="index">02</span> The research question</div>
-  <h2 id="question-title" class="reveal">What happens<br>to the air<br><em>above us?</em></h2>
+  <h2 id="question-title" class="reveal">What happens<br>to the air<br><strong class="question-emphasis">above us?</strong></h2>
   <div class="intro-copy">
     <p>Atmospheric measurements connect abstract scientific ideas with something observable. This project develops a practical platform through which learners could explore sensors, computing and environmental data.</p>
     <p>A Raspberry Pi brings environmental and particulate sensing into one programmable instrument. The research follows Design Science Research: build an artefact, evaluate it, and refine it through evidence.</p>
   </div>
-  <p class="small-note mono">The balloon is the intended research platform. This visual descent is an interpretation of that ambition. The measurements presented here were collected on the ground in the Honours Laboratory.</p>
+  <p class="small-note">The balloon is the intended research platform. This visual descent is an interpretation of that ambition. The measurements presented here were collected on the ground in the Honours Laboratory.</p>
 </section>
 <section class="hardware" id="instrument" aria-labelledby="instrument-title">
   <figure class="photo-main">
@@ -275,6 +300,7 @@
   let motion=!reduce.matches;
   let width=window.innerWidth,height=window.innerHeight,pixelRatio=1;
   let frameId=0,lastTime=0,current=0,target=0;
+  let pausedProgress=0,pausedScrollY=window.scrollY;
   let anchors=[];
   let colorStops=[[0,0],[1,1]];
   const clamp=(n,a=0,b=1)=>Math.max(a,Math.min(b,n));
@@ -362,6 +388,8 @@
     return stops[stops.length-1][1];
   }
   function draw(p){
+    const balloonProgress=motion?p:pausedProgress;
+    const balloonScrollY=motion?window.scrollY:pausedScrollY;
     const atmosphere=interpolateStops(colorStops,p);
     const ink=paintPalette(atmosphere);
     document.getElementById('journey-dot').style.top=String(p*100)+'%';
@@ -373,20 +401,20 @@
     ctx.setTransform(pixelRatio,0,0,pixelRatio,0,0);ctx.clearRect(0,0,width,height);
     const mobile=width<=650;
     const base=mobile?Math.min(width*.57/artWidth,height*.44/artHeight):Math.min(width*.49/artWidth,height*.82/artHeight);
-    const size=interpolateStops([[0,1],[.14,.94],[.30,.78],[.45,.77],[.62,.64],[.81,.66],[1,.82]],p);
+    const size=interpolateStops([[0,1],[.14,.94],[.30,.78],[.45,.77],[.62,.64],[.81,.66],[1,.82]],balloonProgress);
     const scale=base*size;
-    const centerX=interpolateStops(mobile?[[0,.75],[.16,.89],[.42,.84],[.6,.84],[.82,.87],[1,.74]]:[[0,.77],[.16,.82],[.42,.82],[.62,.86],[.81,.85],[1,.79]],p)*width;
-    let artBottom=(mobile?interpolateStops([[0,.86],[.18,.89],[.5,.91],[.8,.9],[1,.925]],p):mix(.92,.965,p))*height;
+    const centerX=interpolateStops(mobile?[[0,.75],[.16,.89],[.42,.84],[.6,.84],[.82,.87],[1,.74]]:[[0,.77],[.16,.82],[.42,.82],[.62,.86],[.81,.85],[1,.79]],balloonProgress)*width;
+    let artBottom=(mobile?interpolateStops([[0,.86],[.18,.89],[.5,.91],[.8,.9],[1,.925]],balloonProgress):mix(.92,.965,balloonProgress))*height;
     if(mobile){
       // Reserve clear space beneath the repository link for the complete landing.
-      const landing=clamp((window.scrollY-anchors[6]+height*.35)/(height*.35));
+      const landing=clamp((balloonScrollY-anchors[6]+height*.35)/(height*.35));
       const earth=document.getElementById('earth');
-      artBottom=mix(artBottom,anchors[6]+earth.offsetHeight-window.scrollY-125,landing);
+      artBottom=mix(artBottom,anchors[6]+earth.offsetHeight-balloonScrollY-125,landing);
     }
     const x=centerX-artWidth*scale/2,y=artBottom-artHeight*scale;
-    const opacity=interpolateStops([[0,1],[.16,.80],[.23,.30],[.30,.18],[.43,.90],[.53,.75],[.61,.07],[.73,.24],[.84,.95],[1,1]],p);
+    const opacity=interpolateStops([[0,1],[.16,.80],[.23,.30],[.30,.18],[.43,.90],[.53,.75],[.61,.07],[.73,.24],[.84,.95],[1,1]],balloonProgress);
     // Deep blue shading stays distinct from the warm paper and green terrain.
-    const blend=p*15,lower=Math.floor(blend),fraction=blend-lower;
+    const blend=balloonProgress*15,lower=Math.floor(blend),fraction=blend-lower;
     const l=layerContext;l.globalCompositeOperation='source-over';l.clearRect(0,0,artWidth,artHeight);
     l.globalAlpha=1-fraction;l.drawImage(texture(lower),0,0);
     if(fraction>0&&lower<15){l.globalCompositeOperation='lighter';l.globalAlpha=fraction;l.drawImage(texture(lower+1),0,0);}
@@ -400,7 +428,9 @@
     l.fillStyle=envelope;l.fillRect(0,0,artWidth,artHeight);
     l.globalCompositeOperation='source-atop';
     l.fillStyle=tint(ink);l.fillRect(0,65*ch,artWidth,artHeight-65*ch);
-    ctx.globalAlpha=opacity;ctx.drawImage(layer,x,y,artWidth*scale,artHeight*scale);ctx.globalAlpha=1;
+    // Align tiny ASCII strokes to screen pixels so the landing stays crisp.
+    const pixelX=Math.round(x*pixelRatio)/pixelRatio,pixelY=Math.round(y*pixelRatio)/pixelRatio;
+    ctx.globalAlpha=opacity;ctx.drawImage(layer,pixelX,pixelY,artWidth*scale,artHeight*scale);ctx.globalAlpha=1;
   }
   function tick(time){
     const dt=lastTime?Math.min(64,time-lastTime):16;lastTime=time;
@@ -410,7 +440,23 @@
     if(current!==target)frameId=requestAnimationFrame(tick);else{frameId=0;lastTime=0;}
   }
   function requestDraw(){updateTarget();if(!frameId)frameId=requestAnimationFrame(tick);}
-  function setMotion(enabled){motion=enabled;motionButton.setAttribute('aria-pressed',String(enabled));motionButton.textContent=enabled?'Motion on / pause':'Motion off / resume';document.documentElement.style.scrollBehavior=enabled?'smooth':'auto';if(!enabled){document.body.classList.remove('motion-ready');document.querySelectorAll('.reveal').forEach(element=>element.classList.add('visible'));}requestDraw();}
+  function setMotion(enabled){
+    if(!enabled&&motion){pausedProgress=current;pausedScrollY=window.scrollY;}
+    motion=enabled;
+    motionButton.setAttribute('aria-pressed',String(!enabled));
+    motionButton.classList.toggle('is-paused',!enabled);
+    document.getElementById('motion-label').textContent=enabled?'Pause balloon':'Resume balloon';
+    motionButton.querySelector('.motion-symbol').textContent=enabled?'Ⅱ':'▶';
+    document.getElementById('motion-status').textContent=enabled?'The balloon follows your scroll.':'The balloon is paused.';
+    document.documentElement.style.scrollBehavior=enabled?'smooth':'auto';
+    if(!enabled){
+      if(frameId)cancelAnimationFrame(frameId);
+      frameId=0;lastTime=0;
+      document.body.classList.remove('motion-ready');
+      document.querySelectorAll('.reveal').forEach(element=>element.classList.add('visible'));
+    }
+    requestDraw();
+  }
   motionButton.addEventListener('click',()=>setMotion(!motion));
   reduce.addEventListener('change',()=>setMotion(!reduce.matches));
   window.addEventListener('scroll',requestDraw,{passive:true});

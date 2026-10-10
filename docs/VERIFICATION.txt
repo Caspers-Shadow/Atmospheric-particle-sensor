@@ -3,7 +3,15 @@ VERIFICATION — 10 OCTOBER 2026
 Actual Google Chrome and Microsoft Edge, opened against the standalone file URL.
 Network was disabled throughout: no server or internet required.
 
-Latest colour update: Chrome desktop and 390/320px mobile views, with visual
+Latest reading and control update: Google Chrome at 1440 x 960, 390 x 844
+and 320 x 700. Supporting notes are 14px normal-case prose; the laboratory
+note is 15px. The research-question emphasis is upright bold in the same
+font and colour. Mobile research copy has a clear background. Pausing keeps
+the balloon's rendered position unchanged while scrolling; resuming moves
+it again. Actual pointer and keyboard toggles, default system reduced motion,
+image decoding and chart interaction pass without browser errors.
+
+Colour review: Chrome desktop and 390/320px mobile views, with visual
 inspection across the hero, atmosphere, findings and landing. Deep blue
 ASCII shading against an ivory landing background renders without errors.
 The complete silhouette uses denser characters, with full final opacity.

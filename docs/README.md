@@ -7,6 +7,10 @@ The approved website is `index.html`. It includes the ASCII balloon, photographs
 QR code, verified laboratory observations and interactive chart in one file.
 It runs directly in a browser and requires no build or external dependencies.
 
+**Pause balloon** keeps the balloon still while you scroll and read. **Resume
+balloon** restores the descent. The page and scientific chart remain usable
+while the balloon is paused. System reduced-motion preferences start it paused.
+
 ## GitHub Pages
 
 This repository's existing Pages source is the `project-day-website` branch,
