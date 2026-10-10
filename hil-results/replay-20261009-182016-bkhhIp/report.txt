@@ -1,0 +1,39 @@
+Atmospheric sensor flight recovery
+Mode: --upload
+Input: data/readings.csv
+Results: /home/mariska/Desktop/Atmospheric-particle-sensor/hil-results/replay-20261009-182016-bkhhIp
+Stop sensor acquisition before recovery. Check that the following UTC range is the actual flight.
+Readings: 398; UTC range: 2026-10-09T09:00:00.366145+00:00 -> 2026-10-09T11:12:25.742104+00:00
+Fields 1-8 keep the existing mapping; status carries light, raw gas, NH3 index and precise time.
+PREVIEW ONLY: No network connection or upload was attempted.
+Results: /home/mariska/Desktop/Atmospheric-particle-sensor/hil-results/replay-20261009-182016-bkhhIp/preview
+Selected 398 readings; discarded 0 invalid timestamps and 0 rows without readable measurements
+SAST range: 2026-10-09T11:00:00.366145+02:00 -> 2026-10-09T13:12:25.742104+02:00
+===== SUMMARY STATISTICS =====
+
+    measurement  count       mean      min       max
+  temperature_c    398     33.211     7.55     61.33
+   humidity_pct    398      3.093     0.00     38.40
+   pressure_hpa    398    291.401    19.22    863.75
+      light_lux    398     64.874    25.72    164.68
+          pm1_0    398      0.221     0.00      1.00
+          pm2_5    398      0.824     0.00      3.00
+           pm10    398      1.116     0.00      4.00
+  oxidising_raw    398  12223.411  3922.18  47878.58
+   reducing_raw    398 145448.213 71272.73 432888.89
+        nh3_raw    398  51831.211  6985.69 331421.38
+oxidising_index    398     11.014     0.00    100.00
+ reducing_index    398     37.578     0.00     64.40
+      nh3_index    398     76.066     0.00     96.50
+       co_index    398     37.578     0.00     64.40
+      no2_index    398     11.014     0.00    100.00
+
+===============================
+
+Outputs: /home/mariska/Desktop/Atmospheric-particle-sensor/hil-results/replay-20261009-182016-bkhhIp/preview-analysis
+Uploading to channel 3429238; matching stored entries will be skipped.
+Readings: 398; UTC range: 2026-10-09T09:00:00.366145+00:00 -> 2026-10-09T11:12:25.742104+00:00
+Fields 1-8 keep the existing mapping; status carries light, raw gas, NH3 index and precise time.
+ERROR: ThingSpeak GET request returned HTTP 400; check keys, channel and request settings
+OVERALL: FAIL or incomplete. Keep the original CSV and rerun to verify and resume.
+Send back this report: /home/mariska/Desktop/Atmospheric-particle-sensor/hil-results/replay-20261009-182016-bkhhIp/report.txt

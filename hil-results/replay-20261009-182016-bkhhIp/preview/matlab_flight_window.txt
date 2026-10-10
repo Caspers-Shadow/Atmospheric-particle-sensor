@@ -1,0 +1,3 @@
+readChannelID = 3429238;
+flightStartUTC = '2026-10-09 09:00:00';
+flightEndUTC = '2026-10-09 11:12:26';

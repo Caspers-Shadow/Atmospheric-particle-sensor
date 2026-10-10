@@ -1,0 +1,42 @@
+{
+  "schema_version": 1,
+  "result": "PASS",
+  "created_at_sast": "2026-10-09T18:20:16.619117+02:00",
+  "source_path": "/home/mariska/Desktop/Atmospheric-particle-sensor/hil-results/replay-20261009-182016-bkhhIp/preview/prepared_thingspeak.csv",
+  "source_sha256": "4962f356aa937018de3f94e6757ceabf475bd0773b48a51f7ea9584499ca92f8",
+  "code_sha256": {
+    "analyse.py": "774699e99ba844151c48a54002cd4501fdc102634b72b1835096d9b2efa84aa9",
+    "thingspeak_schema.py": "fa34cbdfb8bc6c33183b334554b5b8b19f7fea85e6f192bdc34836930f059988"
+  },
+  "versions": {
+    "python": "3.13.5",
+    "pandas": "3.0.3",
+    "xlsxwriter": null
+  },
+  "parsed_source_readings": 398,
+  "invalid_timestamps": 0,
+  "unreadable_measurement_rows": 0,
+  "selected_readings": 398,
+  "requested_start": null,
+  "requested_end": null,
+  "window_start_sast": "2026-10-09T11:00:00.366145+02:00",
+  "window_end_sast": "2026-10-09T13:12:25.742104+02:00",
+  "end_selection": "last_readable_record",
+  "first_reading_sast": "2026-10-09T11:00:00.366145+02:00",
+  "last_reading_sast": "2026-10-09T13:12:25.742104+02:00",
+  "first_reading_utc": "2026-10-09T09:00:00.366145+00:00",
+  "last_reading_utc": "2026-10-09T11:12:25.742104+00:00",
+  "max_gap_seconds": 20.014945,
+  "repeat_arguments": [
+    "--input",
+    "source.csv"
+  ],
+  "files": [
+    "cleaned_thingspeak_data.csv",
+    "summary_statistics.csv",
+    "gas_report.csv",
+    "report.txt",
+    "report.json",
+    "source.csv"
+  ]
+}
