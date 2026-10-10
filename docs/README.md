@@ -9,6 +9,8 @@ It runs directly in a browser and requires no build or external dependencies.
 
 The ground-test chart has **Play record** and **Pause record** controls.
 Replay advances through the original observations at ten rows per second.
+Playback starts when the chart becomes visible and pauses off-screen.
+Returning resumes it unless the visitor paused or inspected a reading manually.
 Manual inspection or leaving the chart pauses playback. **Replay record**
 starts again after the final reading. The balloon follows scrolling and
 respects system reduced-motion preferences.

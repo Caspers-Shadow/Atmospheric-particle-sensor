@@ -3,7 +3,20 @@ VERIFICATION — 10 OCTOBER 2026
 Actual Google Chrome and Microsoft Edge, opened against the standalone file URL.
 Network was disabled throughout: no server or internet required.
 
-Latest typography refinement: Google Chrome at 1920 x 1080, 1440 x 960,
+Latest mobile and automatic-playback update: Google Chrome at phone widths
+320, 360, 390 and 430px, 768px tablet and 844 x 390px landscape. All three
+photos retain their original 1600 x 1200 JPEGs, with full 4:3 framing and
+13px unobstructed captions. Compact charts render at 300px high; axis ticks
+remain 12.5px and units 11.5px on screen, with 5.67:1 label contrast.
+Labels do not collide. Selected
+phone readings are 20px, with a separate unit label and roomier slider.
+Legend buttons, playback and sliders have touch targets at least 44px high.
+The chart starts automatically when at least 30% becomes visible, pauses
+off-screen, and resumes on return. Explicit pause and manual inspection
+remain paused through leaving and returning. Reduced-motion preferences
+skip automatic replay; deliberate Play still works. All checks pass offline.
+
+Typography and replay checks: Google Chrome at 1920 x 1080, 1440 x 960,
 390 x 844 and 320 x 700. Research-question paragraphs and the laboratory
 note match the established body font, size, weight, spacing and line height
 at each viewport. Full-width section borders are removed, and short label
@@ -15,7 +28,7 @@ keyboard slider changes, chart inspection and leaving the chart stop replay.
 The final observation stops playback and offers Replay record.
 Actual pointer/keyboard controls, original timestamps and values, final-row
 handling, replay and no-JavaScript fallback all pass. System reduced motion
-keeps the balloon still and recorded data does not play automatically.
+keeps the balloon still and disables automatic recorded-data playback.
 The laboratory note is 15px on desktop and 16px on phones; supporting notes
 remain at least 14px. Same-font bold research-question emphasis is retained.
 Photos and the QR decode without errors.

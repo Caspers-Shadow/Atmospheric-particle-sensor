@@ -12,6 +12,8 @@ Move across the chart, tap it, or use the observation slider to read values.
 Keyboard users can use Tab and arrow keys on the slider.
 Select a chart legend label to show or hide a trace.
 Play record advances through the original ground-test observations at 10 rows/second.
+Playback starts when the chart comes into view and resumes after scrolling back.
+An explicit pause or manual inspection is kept until Play record is selected.
 Pause record holds the selected reading. Manual chart/slider inspection or leaving
 the chart pauses playback. The end of the record offers Replay record.
 System reduced-motion preferences are respected automatically.
