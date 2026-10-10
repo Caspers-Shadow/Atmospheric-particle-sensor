@@ -3,10 +3,12 @@ VERIFICATION — 10 OCTOBER 2026
 Actual Google Chrome and Microsoft Edge, opened against the standalone file URL.
 Network was disabled throughout: no server or internet required.
 
-Latest section and record-playback update: Google Chrome at 1440 x 960,
-390 x 844 and 320 x 700. Six chapter boundaries have full-width dividers;
-section labels use longer rules and larger numbers. Warm evidence paper
-and cooler findings sky distinguish the transition. The global balloon
+Latest typography refinement: Google Chrome at 1920 x 1080, 1440 x 960,
+390 x 844 and 320 x 700. Research-question paragraphs and the laboratory
+note match the established body font, size, weight, spacing and line height
+at each viewport. Full-width section borders are removed, and short label
+rules replace the extended lines. Warm evidence paper and cooler findings
+sky distinguish the transition. The global balloon
 pause button is removed. Play record advances through the original recorded
 rows at 10 observations per second. Pause holds the selected observation;
 keyboard slider changes, chart inspection and leaving the chart stop replay.
@@ -14,8 +16,9 @@ The final observation stops playback and offers Replay record.
 Actual pointer/keyboard controls, original timestamps and values, final-row
 handling, replay and no-JavaScript fallback all pass. System reduced motion
 keeps the balloon still and recorded data does not play automatically.
-The 15px laboratory note, 14px supporting notes and same-font bold research
-question emphasis are retained. Photos and the QR decode without errors.
+The laboratory note is 15px on desktop and 16px on phones; supporting notes
+remain at least 14px. Same-font bold research-question emphasis is retained.
+Photos and the QR decode without errors.
 
 Colour review: Chrome desktop and 390/320px mobile views, with visual
 inspection across the hero, atmosphere, findings and landing. Deep blue
