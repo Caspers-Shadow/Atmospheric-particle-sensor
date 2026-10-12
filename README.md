@@ -239,6 +239,48 @@ See [the visualization app](https://www.mathworks.com/help/thingspeak/matlab-vis
 
 ## Analysis
 
+### Windows PC
+
+`run_analysis.ps1` is the Windows entry point. It runs `analyse.py`, creates
+a fresh results folder with Excel and CSV files, and optionally opens desktop
+MATLAB with that exact experiment, the editable dashboard source and the
+full `readings` table. Install the environment once as shown below, then
+from PowerShell in the project folder, run:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\run_analysis.ps1 -Start "2026-10-09 11:00:00" -Matlab -OpenResults
+```
+
+Change `-Start` for a new experiment, add `-End` to stop earlier, or use
+`-InputCsv data\flight-02\readings.csv` for another source. Times mean SAST.
+Omit `-Matlab` to run Python alone. MATLAB must be installed and on PATH;
+otherwise supply `-MatlabExe "C:\Program Files\MATLAB\R2025a\bin\matlab.exe"`.
+The local dashboard reads the Python results directly without internet,
+ThingSpeak keys or the ThingSpeak toolbox. All measurements are available
+in `readings`; the dashboard retains the eight channel plots.
+
+In MATLAB, edit `MATLAB_Visualization.m` and press **Run** to test changes.
+`analysisCSV` in the workspace selects the results CSV. Each results folder
+also contains `open_matlab.m`, which reopens that run in MATLAB. To return
+to cloud mode, run `clear analysisCSV` and supply your private Read API key.
+The original source CSV is preserved for rerunning the Python analysis.
+
+On another Windows PC, install Python 3.9 or later and create the environment
+once while online:
+
+```powershell
+py -3 -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -r requirements-analysis.txt
+```
+
+No environment activation is required. To run Python directly on this PC:
+
+```powershell
+.\.venv\Scripts\python.exe analyse.py --input data\readings.csv --start "2026-10-09 11:00:00" --excel
+```
+
+### Raspberry Pi
+
 On the Pi, activate the existing Pimoroni virtual environment before installing
 packages or running analysis. Install the analysis dependencies once while online:
 
