@@ -1,6 +1,6 @@
 # Repository review — 8 October 2026
 
-Branch: `codex/offline-reliability-review`, based on local `dev` at `a3c0614`.
+Branch: `offline-reliability-review`, originally based on local `dev` at `a3c0614`.
 
 ## Fixed obvious problems
 
@@ -20,9 +20,10 @@ Branch: `codex/offline-reliability-review`, based on local `dev` at `a3c0614`.
 | BME280 package and LCD API mismatch | Fresh installs may fail | `pimoroni-bme280`, lowercase `st7735`, current GPIO pin names |
 | Every failure immediately retries at LCD cadence | Persistent errors can flood logs | Schedule the next acquisition before reading; disable LCD after a refresh failure; rotating logs |
 
-Original experiment files were preserved. `.gitignore` excludes default runtime
-data, raw logs, environment files and editor lock files. HIL reports, CSVs and
-console output can be committed under `hil-results/`.
+Original experiment files were preserved. As of 12 October 2026, `.gitignore`
+allows the Pi's `data/` folder to be committed, while raw logs, environment
+files, dependencies and editor lock files remain ignored. HIL reports, CSVs
+and console output can also be committed under `hil-results/`.
 
 ## Verification
 

@@ -13,11 +13,11 @@ or installed dependencies. It includes the small offline CSV fixture needed
 by the replay tests. An existing configured Python environment can be
 used from this new folder.
 
-The changes are available on the GitHub branch `codex/offline-reliability-review`.
+The changes are available on the GitHub branch `offline-reliability-review`.
 To use a fresh checkout while the Pi is still online:
 
 ```bash
-git clone --branch codex/offline-reliability-review https://github.com/Caspers-Shadow/Atmospheric-particle-sensor.git atmospheric-offline-test
+git clone --branch offline-reliability-review https://github.com/Caspers-Shadow/Atmospheric-particle-sensor.git atmospheric-offline-test
 cd atmospheric-offline-test
 ```
 
