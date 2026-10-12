@@ -14,6 +14,7 @@ testValues = repmat((1:4)', 1, 8);
 testValues(1, 4) = -1;
 testValues(3, 8) = Inf;
 testInput = array2table(testValues, 'VariableNames', testColumns);
+testInput.nh3_index = [15; 0; -1; 15];
 testInput.timestamp_utc = testStamps;
 testInput.timestamp_sast = replace(replace(testStamps, '09:', '11:'), '+00:00', '+02:00');
 % Match Python's output: the first two columns are unquoted timestamps.
@@ -30,9 +31,28 @@ assert(time(end) == datetime('2026-10-09 11:00:40.742104', ...
     'InputFormat', 'yyyy-MM-dd HH:mm:ss.SSSSSS', 'TimeZone', 'Africa/Johannesburg'));
 assert(isnan(data(2, 4)) && isnan(data(3, 8)));
 assert(isequal(readings.timestamp_sast, time));
-assert(numel(findall(gcf, 'Type', 'axes')) == 8);
-fprintf('PASS: local CSV, sorting, duplicates, microseconds, SAST, missing data and eight plots.\n');
-close(gcf);
+assert(numel(findall(mainFigure, 'Type', 'axes')) == 8);
+assert(numel(findall(gasFigure, 'Type', 'axes')) == 3);
+assert(isequaln(gasData(:, 1), data(:, 8)));
+assert(isequaln(gasData(:, 2), data(:, 7)));
+assert(isequaln(gasData(:, 3), [0; 15; NaN]));
+testGasAxes = findall(gasFigure, 'Type', 'axes');
+for testGas = 1:3
+    testLine = findall(testGasAxes(testGas), 'Type', 'line');
+    assert(numel(testLine) == 1 && numel(testLine.YData) == 3);
+end
+fprintf('PASS: local CSV, sorting, duplicates, microseconds, SAST, missing data, eight channel plots and three gas plots.\n');
+close(mainFigure);
+close(gasFigure);
+
+testInput = removevars(testInput, 'nh3_index');
+writetable(testInput, analysisCSV, 'QuoteStrings', false);
+run(fullfile(testProject, 'MATLAB_Visualization.m'));
+assert(all(isnan(gasData(:, 3))));
+assert(contains(gasTitles{3}, 'unavailable'));
+fprintf('PASS: a missing NH3 column stays unavailable rather than becoming zero or another sensor.\n');
+close(mainFigure);
+close(gasFigure);
 
 testInput = table("bad", 'VariableNames', {'timestamp_utc'});
 writetable(testInput, analysisCSV);

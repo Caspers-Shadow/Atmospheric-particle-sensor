@@ -258,6 +258,11 @@ otherwise supply `-MatlabExe "C:\Program Files\MATLAB\R2025a\bin\matlab.exe"`.
 The local dashboard reads the Python results directly without internet,
 ThingSpeak keys or the ThingSpeak toolbox. All measurements are available
 in `readings`; the dashboard retains the eight channel plots.
+An additional figure plots CO, NO2 and NH3 relative indices over the same
+selected time range. CO repeats the reducing sensor index and NO2 repeats
+the oxidising sensor index. NH3 uses its own recorded index. These plots
+show relative responses, not ppm concentrations. If NH3 was not recorded,
+its plot is labelled unavailable and contains no substituted readings.
 
 In MATLAB, edit `MATLAB_Visualization.m` and press **Run** to test changes.
 `analysisCSV` in the workspace selects the results CSV. Each results folder

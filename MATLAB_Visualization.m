@@ -20,6 +20,9 @@ if localAnalysis
     end
     opts = setvartype(opts, {'timestamp_utc', 'timestamp_sast'}, 'string');
     opts = setvartype(opts, fieldColumns, 'double');
+    if ismember('nh3_index', opts.VariableNames)
+        opts = setvartype(opts, 'nh3_index', 'double');
+    end
     readings = readtable(analysisCSV, opts);
     % pandas exports a space separator; logger files use T. Preserve fractions.
     stamps = replace(readings.timestamp_utc, ' ', 'T');
@@ -137,7 +140,7 @@ if localAnalysis
     readings.timestamp_utc = time;
     readings.timestamp_sast = time;
     readings.timestamp_sast.TimeZone = 'Africa/Johannesburg';
-    figure('Name', 'Local experiment', 'NumberTitle', 'off', 'Position', [100 100 1050 800]);
+    mainFigure = figure('Name', 'Local experiment', 'NumberTitle', 'off', 'Position', [100 100 1050 800]);
     fprintf('Loaded %d local readings. Full measurements are in the readings table.\n', height(readings));
 end
 data(~isfinite(data)) = NaN;
@@ -162,3 +165,34 @@ for field = 1:8
     grid on
 end
 sgtitle(sprintf('Atmospheric flight: %d readings', numel(time)))
+
+if localAnalysis
+    % Match analyse.py: CO uses the reducing index and NO2 the oxidising
+    % index. NH3 has its own sensing element; never infer it from either.
+    gasData = [data(:, 8), data(:, 7), NaN(numel(time), 1)];
+    if ismember('nh3_index', readings.Properties.VariableNames)
+        gasData(:, 3) = readings.nh3_index;
+    end
+    gasData(~isfinite(gasData) | gasData < 0) = NaN;
+    gasTitles = {'CO index (reducing sensor)', 'NO2 index (oxidising sensor)', 'NH3 index'};
+    if all(isnan(gasData(:, 3)))
+        gasTitles{3} = 'NH3 index (unavailable in this file)';
+    end
+    gasFigure = figure('Name', 'CO, NO2 and NH3 indices', 'NumberTitle', 'off', ...
+        'Position', [200 100 1000 800]);
+    gasLayout = tiledlayout(gasFigure, 3, 1, 'TileSpacing', 'compact', 'Padding', 'loose');
+    for gas = 1:3
+        nexttile(gasLayout)
+        plot(time, gasData(:, gas))
+        title(gasTitles{gas})
+        ylabel('Relative index (0-100)')
+        xlabel('Time (SAST)')
+        xtickformat('dd-MMM HH:mm')
+        if numel(time) > 1
+            xlim([time(1), time(end)])
+        end
+        ylim([0 100])
+        grid on
+    end
+    sgtitle(gasLayout, sprintf('Gas indices: %d readings (not ppm)', numel(time)))
+end
