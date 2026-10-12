@@ -25,7 +25,8 @@ once the dependencies and Pi interfaces are configured.
 
 The committed CSVs and log are historical experiment records. New acquisition
 uses `data/readings.csv`, and each analysis creates a new `data/analysis-.../` folder, both
-ignored by Git. Existing tracked records remain tracked.
+available to commit to Git. Runtime logs, environment files and installed
+dependencies remain ignored. Existing tracked records remain tracked.
 
 ## Pi setup
 
@@ -320,6 +321,25 @@ python3 analyse.py --input thingspeak_data.csv --legacy-mixed \
 This writes corrected outputs and leaves the original file untouched. The
 historical gas indices include values above 100, indicating an older scale;
 do not compare those directly with current baseline-derived 0–100 indices.
+
+## Share the Pi data on GitHub
+
+From the project folder on the Pi, while online:
+
+```bash
+git fetch origin
+git switch offline-reliability-review
+git pull --ff-only
+git add data
+git commit -m "Add Pi experiment data"
+git push origin offline-reliability-review
+```
+
+The branch is now named `offline-reliability-review`. `git switch` uses the
+existing local branch, or creates it from the matching remote branch. The
+`data/` folder is no longer ignored; adding, committing and pushing makes its
+CSVs and analysis results available on GitHub. Logs and environment files stay
+ignored. An empty folder does not appear in Git; it must contain files.
 
 ## Development checks
 

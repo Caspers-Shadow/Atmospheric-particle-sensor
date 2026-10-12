@@ -1,0 +1,48 @@
+{
+  "schema_version": 1,
+  "result": "PASS",
+  "created_at_sast": "2026-10-09T17:42:15.076553+02:00",
+  "source_path": "/home/mariska/Desktop/Atmospheric-particle-sensor/data/readings.csv",
+  "source_sha256": "99c1be3619679e3ff2091629e0890ca21174a23c38b019527219eced8fd915f7",
+  "code_sha256": {
+    "analyse.py": "774699e99ba844151c48a54002cd4501fdc102634b72b1835096d9b2efa84aa9",
+    "thingspeak_schema.py": "fa34cbdfb8bc6c33183b334554b5b8b19f7fea85e6f192bdc34836930f059988"
+  },
+  "versions": {
+    "python": "3.13.5",
+    "pandas": "3.0.3",
+    "xlsxwriter": "3.2.9"
+  },
+  "parsed_source_readings": 654,
+  "invalid_timestamps": 0,
+  "unreadable_measurement_rows": 0,
+  "selected_readings": 398,
+  "requested_start": "2026-10-09 11:00:00",
+  "requested_end": null,
+  "window_start_sast": "2026-10-09T11:00:00+02:00",
+  "window_end_sast": "2026-10-09T13:12:25.742104+02:00",
+  "end_selection": "last_readable_record",
+  "first_reading_sast": "2026-10-09T11:00:00.366145+02:00",
+  "last_reading_sast": "2026-10-09T13:12:25.742104+02:00",
+  "first_reading_utc": "2026-10-09T09:00:00.366145+00:00",
+  "last_reading_utc": "2026-10-09T11:12:25.742104+00:00",
+  "max_gap_seconds": 20.014945,
+  "repeat_arguments": [
+    "--input",
+    "source.csv",
+    "--start",
+    "2026-10-09T11:00:00+02:00",
+    "--end",
+    "2026-10-09T13:12:25.742104+02:00",
+    "--excel"
+  ],
+  "files": [
+    "experiment.csv",
+    "summary_statistics.csv",
+    "gas_report.csv",
+    "report.txt",
+    "report.json",
+    "source.csv",
+    "analysis.xlsx"
+  ]
+}

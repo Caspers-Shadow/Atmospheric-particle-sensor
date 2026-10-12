@@ -2,7 +2,7 @@ __pycache__/
 *.py[cod]
 .venv/
 .test-deps/
-data/
+node_modules/
 *.log
 .env
 .~lock.*#
