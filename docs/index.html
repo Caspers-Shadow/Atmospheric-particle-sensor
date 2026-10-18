@@ -123,6 +123,7 @@
 .launch-modes button{background:none;border:0;border-bottom:1px solid transparent;padding:10px 0;min-height:44px;color:#4b615a;font-family:var(--mono);font-size:12px}
 .launch-modes button[aria-pressed="true"]{color:#233436;border-bottom-color:currentColor}
 .launch-chart-top{margin-top:30px;min-height:44px}
+.launch-evidence .legend{flex-wrap:wrap}
 #launch-chart{width:100%;height:auto;overflow:visible;display:block;touch-action:pan-y}
 #launch-chart text{font-family:var(--mono);fill:#4b615a;font-size:11px}
 #launch-chart .grid{stroke:#213c34;stroke-opacity:.15;stroke-width:1}
@@ -138,7 +139,7 @@
 .launch-details summary .mono{font-size:11px;color:var(--muted);margin-left:18px}
 .launch-details .summary-table{max-width:800px;margin-top:24px}
 @media(max-width:650px){.launch-evidence{padding-top:56px}.launch-meta{grid-template-columns:1fr;gap:20px;margin-top:30px}.launch-meta p,.launch-boundary{font-size:15px}.launch-meta p{margin-top:5px}.launch-modes{gap:4px 20px;margin-top:30px}.launch-modes button{font-size:12px}.launch-chart-top{gap:10px}.launch-summary{font-size:11px}.launch-summary th{font-size:11px}.launch-details summary .mono{display:block;margin:4px 0 0}.launch-evidence .legend{gap:18px}}
-@media(max-width:420px){.topbar .brand-name{display:none}}
+@media(max-width:420px){.topbar .brand-name{display:none}.launch-evidence .stat:last-child .value{font-size:clamp(23px,7.3vw,32px)}}
 @media(prefers-reduced-motion:reduce){#launch-chart .trace{transition:none}}
 </style>
 </head>
