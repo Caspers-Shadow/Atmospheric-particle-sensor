@@ -1,0 +1,78 @@
+VERIFICATION — 10 OCTOBER 2026
+
+Actual Google Chrome and Microsoft Edge, opened against the standalone file URL.
+Network was disabled throughout: no server or internet required.
+
+Latest desktop chart interaction: moving or hovering a mouse over the chart
+does not pause replay or change a held reading. Scrolling while the pointer
+is over a visible chart keeps replay running. Clicking pauses and selects
+the reading. Actual mouse movement, wheel scrolling and click checks pass
+at 1920 x 1080 and 1440 x 960; mobile tap interaction remains unchanged.
+
+Mobile and automatic-playback update: Google Chrome at phone widths
+320, 360, 390 and 430px, 768px tablet and 844 x 390px landscape. All three
+photos retain their original 1600 x 1200 JPEGs, with full 4:3 framing and
+13px unobstructed captions. Compact charts render at 300px high; axis ticks
+remain 12.5px and units 11.5px on screen, with 5.67:1 label contrast.
+Labels do not collide. Selected
+phone readings are 20px, with a separate unit label and roomier slider.
+Legend buttons, playback and sliders have touch targets at least 44px high.
+The chart starts automatically when at least 30% becomes visible, pauses
+off-screen, and resumes on return. Explicit pause and manual inspection
+remain paused through leaving and returning. Reduced-motion preferences
+skip automatic replay; deliberate Play still works. All checks pass offline.
+
+Typography and replay checks: Google Chrome at 1920 x 1080, 1440 x 960,
+390 x 844 and 320 x 700. Research-question paragraphs and the laboratory
+note match the established body font, size, weight, spacing and line height
+at each viewport. Full-width section borders are removed, and short label
+rules replace the extended lines. Warm evidence paper and cooler findings
+sky distinguish the transition. The global balloon
+pause button is removed. Play record advances through the original recorded
+rows at 10 observations per second. Pause holds the selected observation;
+keyboard slider changes, chart inspection and leaving the chart stop replay.
+The final observation stops playback and offers Replay record.
+Actual pointer/keyboard controls, original timestamps and values, final-row
+handling, replay and no-JavaScript fallback all pass. System reduced motion
+keeps the balloon still and disables automatic recorded-data playback.
+The laboratory note is 15px on desktop and 16px on phones; supporting notes
+remain at least 14px. Same-font bold research-question emphasis is retained.
+Photos and the QR decode without errors.
+
+Colour review: Chrome desktop and 390/320px mobile views, with visual
+inspection across the hero, atmosphere, findings and landing. Deep blue
+ASCII shading against an ivory landing background renders without errors.
+The complete silhouette uses denser characters, with full final opacity.
+The enlarged mobile balloon occupies clear space below the repository link.
+Actual composited balloon pixels were checked against the background;
+at least 60% of pixels with alpha >= 0.25 reach 3:1 contrast at all three sizes.
+Landing heading, body copy, researcher labels and repository link achieve
+at least 6.62:1 text contrast against the sky. Return-to-top and system
+reduced-motion behaviour were rechecked. Earlier functional checks follow.
+
+PASS: Desktop 1440 x 960, tablet 768 x 1024, phones 390 x 844 and 320 x 700.
+PASS: Complete original photographs at 320, 360, 390 and 430px phone widths,
+      768px tablet width, and 844 x 390 phone landscape.
+PASS: Photographs retain their original 1600 x 1200 pixels and JPEG bytes;
+      4:3 mobile frames show the full image with unobstructed captions below.
+PASS: Restored ASCII attachment and straight column of | characters,
+      visually reviewed at 1440, 390 and 320px; payload shares the centre axis.
+PASS: All photographs and QR image loaded successfully.
+PASS: All 525 real observations embedded; exact last-sample timestamp/value.
+PASS: Desktop click inspection; hover and scrolling do not pause visible replay.
+PASS: Touch chart inspection.
+PASS: Legend trace hiding/restoring and keyboard observation slider.
+PASS: Actual browser CSV download saved, with corrected headers and 525 rows.
+PASS: Recorded-data playback, pause, manual inspection and system reduced motion.
+PASS: No-JavaScript text, photography and static SVG chart fallback.
+PASS: No horizontal overflow in tested viewport widths.
+PASS: No JavaScript exceptions, console errors or image-loading errors.
+PASS: No unexpected network requests.
+PASS: Visual inspection of desktop and mobile screenshots.
+PASS: Standalone HTML and archive content consistency.
+
+The data was independently recalculated against dissertation Tables 4.7–4.9
+and section 4.9.8 before authoring. All eight reported means and ranges match.
+
+The layout checks emulate mobile viewports; no physical handset was used.
+Only the external repository destination requires an internet connection.

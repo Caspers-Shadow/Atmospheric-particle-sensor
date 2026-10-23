@@ -1,0 +1,3 @@
+# Preserve the approved standalone page and downloadable data byte for byte.
+index.html -text
+APS_ground_test_2026-07-21.csv -text
